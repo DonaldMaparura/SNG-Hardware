@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#1a1a1a"/>
+  <g transform="translate(200,160)">
+    <rect x="40" y="80" width="280" height="70" rx="12" fill="#1a3d1f"/>
+    <rect x="280" y="95" width="120" height="40" rx="6" fill="#555"/>
+    <rect x="100" y="150" width="50" height="120" rx="8" fill="#333"/>
+    <rect x="40" y="60" width="80" height="40" fill="#8BC53F"/>
+  </g>
+  <text x="40" y="560" fill="#8BC53F" font-family="Arial" font-size="14">CORDLESS DRILL</text>
+</svg>

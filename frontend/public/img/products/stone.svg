@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#3a3a3a"/>
+  <g fill="#8a8a8a">
+    <ellipse cx="280" cy="360" rx="60" ry="40"/><ellipse cx="360" cy="320" rx="50" ry="35"/>
+    <ellipse cx="440" cy="370" rx="70" ry="45"/><ellipse cx="520" cy="310" rx="55" ry="38"/>
+    <ellipse cx="340" cy="420" rx="80" ry="40"/><ellipse cx="480" cy="430" rx="65" ry="35"/>
+  </g>
+  <text x="40" y="80" fill="#ddd" font-family="Arial" font-size="22" font-weight="700">19mm STONE</text>
+</svg>

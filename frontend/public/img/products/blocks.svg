@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#3a3a3a"/>
+  <g fill="#9a9a9a" transform="translate(100,160)">
+    <rect x="0" y="0" width="180" height="90" rx="4"/><rect x="200" y="0" width="180" height="90" rx="4"/>
+    <rect x="400" y="0" width="180" height="90" rx="4"/><rect x="100" y="110" width="180" height="90" rx="4"/>
+    <rect x="300" y="110" width="180" height="90" rx="4"/><rect x="200" y="220" width="180" height="90" rx="4"/>
+  </g>
+  <text x="40" y="80" fill="#ddd" font-family="Arial" font-size="22" font-weight="700">6 INCH CONCRETE BLOCK</text>
+</svg>

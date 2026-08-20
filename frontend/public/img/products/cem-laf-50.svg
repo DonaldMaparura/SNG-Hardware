@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#3f4a40"/>
+  <g transform="translate(180,70)">
+    <rect x="60" y="60" width="200" height="340" rx="8" fill="#e0d2b0"/>
+    <rect x="78" y="90" width="164" height="110" fill="#0d2a18"/>
+    <text x="160" y="145" text-anchor="middle" fill="#8BC53F" font-family="Arial" font-size="26" font-weight="700">LAFARGE</text>
+    <text x="160" y="175" text-anchor="middle" fill="#fff" font-family="Arial" font-size="16">50KG</text>
+    <rect x="200" y="100" width="220" height="340" rx="8" fill="#d2c09a"/>
+    <rect x="218" y="130" width="184" height="110" fill="#1a3d1f"/>
+    <text x="310" y="185" text-anchor="middle" fill="#fff" font-family="Arial" font-size="28" font-weight="700">CEMENT</text>
+    <text x="310" y="215" text-anchor="middle" fill="#8BC53F" font-family="Arial" font-size="16">50KG BAG</text>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#1a1a1a"/>
+  <g transform="translate(220,140)">
+    <rect x="80" y="40" width="40" height="260" rx="8" fill="#333"/>
+    <rect x="40" y="40" width="120" height="70" rx="10" fill="#1a3d1f"/>
+    <circle cx="100" cy="220" r="90" fill="#555"/><circle cx="100" cy="220" r="35" fill="#8BC53F"/>
+  </g>
+  <text x="40" y="560" fill="#8BC53F" font-family="Arial" font-size="14">ANGLE GRINDER</text>
+</svg>

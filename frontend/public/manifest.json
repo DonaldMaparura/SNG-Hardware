@@ -1,9 +1,9 @@
 {
-  "name": "SNG ONE",
-  "short_name": "SNG ONE",
+  "name": "SNG Hardware",
+  "short_name": "SNG Hardware",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f1ea",
-  "theme_color": "#1b4d3e",
+  "background_color": "#f2f0ea",
+  "theme_color": "#1a3d1f",
   "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

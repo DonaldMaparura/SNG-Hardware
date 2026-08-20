@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#2a2f28"/>
+  <g transform="translate(120,140)">
+    <path d="M80 80 L420 80 L480 220 L60 220 Z" fill="#8BC53F"/>
+    <rect x="40" y="210" width="520" height="24" fill="#1a3d1f"/>
+    <circle cx="200" cy="320" r="70" fill="#222"/><circle cx="200" cy="320" r="28" fill="#888"/>
+    <rect x="420" y="200" width="18" height="180" fill="#555" transform="rotate(-25 420 200)"/>
+    <rect x="480" y="200" width="18" height="180" fill="#555" transform="rotate(-25 480 200)"/>
+  </g>
+  <text x="40" y="560" fill="#8BC53F" font-family="Arial" font-size="14">WHEELBARROW 65L</text>
+</svg>

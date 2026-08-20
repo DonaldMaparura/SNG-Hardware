@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <rect width="800" height="600" fill="#2a3a32"/>
+  <g transform="translate(280,80)">
+    <rect x="40" y="100" width="200" height="320" rx="16" fill="#f4f4f0"/>
+    <rect x="40" y="100" width="200" height="90" fill="#1a3d1f"/>
+    <text x="140" y="155" text-anchor="middle" fill="#8BC53F" font-family="Arial" font-size="22" font-weight="700">20L</text>
+    <circle cx="140" cy="280" r="48" fill="#8BC53F"/>
+    <rect x="70" y="50" width="140" height="60" rx="8" fill="#c4a35a"/>
+    <text x="140" y="400" text-anchor="middle" fill="#1a3d1f" font-family="Arial" font-size="16">INTERIOR PAINT</text>
+  </g>
+</svg>
