@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: sng-one
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sngone}
+    username: ${SPRING_DATASOURCE_USERNAME:sngone}
+    password: ${SPRING_DATASOURCE_PASSWORD:sngone}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+sng:
+  jwt:
+    secret: ${SNG_JWT_SECRET:sng-one-demo-secret-change-in-production-2026-hardware}
+    ttl-hours: 12
+  upload-dir: ${SNG_UPLOAD_DIR:${user.home}/sng-one-uploads}
+  seed: true
+  demo-one-click: false
+  timber:
+    default-kerf-mm: 3
+    reusable-offcut-m: 0.900
+  public:
+    expose-exact-quantities: false
+    low-stock-public-factor: 0.25

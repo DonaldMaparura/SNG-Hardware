@@ -1,0 +1,9 @@
+{
+  "name": "SNG ONE",
+  "short_name": "SNG ONE",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#1b4d3e",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

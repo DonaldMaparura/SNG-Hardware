@@ -1,0 +1,10 @@
+target/
+.idea/
+*.iml
+.mvn/
+node_modules/
+dist/
+.DS_Store
+*.log
+uploads/
+sng-one-uploads/

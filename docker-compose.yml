@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sngone
+      POSTGRES_USER: sngone
+      POSTGRES_PASSWORD: sngone
+    ports:
+      - "55432:5432"
+    volumes:
+      - sngone_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sngone -d sngone"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sngone
+      SPRING_DATASOURCE_USERNAME: sngone
+      SPRING_DATASOURCE_PASSWORD: sngone
+      SNG_JWT_SECRET: sng-one-demo-secret-change-in-production-2026-hardware
+      SNG_UPLOAD_DIR: /data/uploads
+    ports:
+      - "8080:8080"
+    volumes:
+      - sngone_uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  sngone_pg:
+  sngone_uploads:
