@@ -8,3 +8,5 @@ dist/
 *.log
 uploads/
 sng-one-uploads/
+
+backend/data/
