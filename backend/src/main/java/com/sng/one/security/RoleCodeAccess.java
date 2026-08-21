@@ -8,11 +8,14 @@ public final class RoleCodeAccess {
     public static boolean isEnterprise(String role) {
         return RoleCode.ADMIN.name().equals(role)
                 || RoleCode.GENERAL_MANAGER.name().equals(role)
+                || RoleCode.OPERATIONS_MANAGER.name().equals(role)
+                || RoleCode.DIRECTOR.name().equals(role)
                 || RoleCode.FINANCE_CONTROLLER.name().equals(role)
                 || RoleCode.AUDITOR.name().equals(role);
     }
 
     public static boolean isReadOnly(String role) {
-        return RoleCode.AUDITOR.name().equals(role);
+        return RoleCode.AUDITOR.name().equals(role)
+                || RoleCode.DIRECTOR.name().equals(role);
     }
 }

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-  <rect width="800" height="600" fill="#5a4828"/>
-  <ellipse cx="280" cy="380" rx="240" ry="90" fill="#c4a06a"/>
-  <ellipse cx="480" cy="340" rx="200" ry="70" fill="#a8844a"/>
-  <ellipse cx="380" cy="430" rx="280" ry="60" fill="#d4b07a"/>
-  <text x="40" y="80" fill="#f0e0c0" font-family="Arial" font-size="22" font-weight="700">BUILDERS SAND</text>
-  <text x="40" y="560" fill="#e8d2a8" font-family="Arial" font-size="14">BULK · CUBIC METRE</text>
-</svg>

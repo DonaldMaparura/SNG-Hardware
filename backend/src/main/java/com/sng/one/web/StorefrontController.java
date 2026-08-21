@@ -12,7 +12,6 @@ import com.sng.one.sales.QuoteRequestRepository;
 import com.sng.one.security.UserPrincipal;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -125,41 +124,75 @@ public class StorefrontController {
         return Map.of("demoOneClick", demoOneClick);
     }
 
-    public record QuoteLineIn(Long productId, @NotBlank String sku, BigDecimal quantity) {}
-    public record QuoteIn(@NotBlank String customerName, String phone, String email, Long preferredLocationId,
-                          @NotBlank String fulfilment, String deliveryAddress, String notes, Boolean tradeCustomer,
-                          @NotEmpty List<QuoteLineIn> lines) {}
+    public record QuoteLineIn(Long productId, String sku, BigDecimal quantity) {}
+    public record QuoteIn(@NotBlank String customerName, String companyName, String phone, String whatsapp,
+                          String email, Long preferredLocationId, String preferredContact,
+                          @NotBlank String fulfilment, String deliveryAddress, String suburb,
+                          String deliveryNotes, String projectType, String notes, Boolean tradeCustomer,
+                          List<QuoteLineIn> lines) {}
 
     @PostMapping("/quote-requests")
     @Transactional
     public Map<String, Object> createQuote(@Valid @RequestBody QuoteIn in, @AuthenticationPrincipal UserPrincipal principal) {
+        List<QuoteLineIn> lines = in.lines() == null ? List.of() : in.lines().stream()
+                .filter(l -> l.sku() != null && !l.sku().isBlank() && l.quantity() != null)
+                .toList();
+        String notes = in.notes() == null ? "" : in.notes().trim();
+        if (lines.isEmpty() && notes.isBlank()) {
+            throw new com.sng.one.common.BusinessException("Add products or describe materials in notes", 400);
+        }
         QuoteRequest q = new QuoteRequest();
-        q.setReference(sequences.next("web_quote", "QT-WEB-", 5));
+        q.setReference(sequences.next("web_quote", "SNG-REQ-", 5));
         q.setCustomerName(in.customerName());
-        q.setPhone(in.phone());
+        q.setPhone(firstNonBlank(in.phone(), in.whatsapp()));
         q.setEmail(in.email());
         q.setFulfilment(in.fulfilment());
-        q.setDeliveryAddress(in.deliveryAddress());
-        String notes = in.notes() == null ? "" : in.notes();
-        if (Boolean.TRUE.equals(in.tradeCustomer())) {
-            notes = (notes.isBlank() ? "" : notes + "\n") + "Trade customer enquiry";
+        String address = in.deliveryAddress() == null ? "" : in.deliveryAddress().trim();
+        if (in.suburb() != null && !in.suburb().isBlank()) {
+            address = address.isBlank() ? in.suburb().trim() : address + ", " + in.suburb().trim();
         }
-        q.setNotes(notes.isBlank() ? null : notes);
+        q.setDeliveryAddress(address.isBlank() ? null : address);
+        q.setNotes(buildRequestNotes(in, notes));
         q.setStatus("NEW");
         if (in.preferredLocationId() != null) {
             locations.findById(in.preferredLocationId()).ifPresent(q::setPreferredLocation);
         }
         if (principal != null) {
             customers.findByEmailIgnoreCase(principal.getUsername()).ifPresent(q::setCustomer);
-        } else if (in.email() != null) {
+        } else if (in.email() != null && !in.email().isBlank()) {
             customers.findByEmailIgnoreCase(in.email()).ifPresent(q::setCustomer);
         }
-        for (QuoteLineIn line : in.lines()) {
+        for (QuoteLineIn line : lines) {
             Product p = query.requireSku(line.sku());
             q.addLine(p, line.quantity(), query.publicPrice(p));
         }
         quoteRequests.save(q);
         return Dtos.quoteRequest(q);
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) return a.trim();
+        if (b != null && !b.isBlank()) return b.trim();
+        return null;
+    }
+
+    private static String buildRequestNotes(QuoteIn in, String notes) {
+        StringBuilder sb = new StringBuilder();
+        if (in.companyName() != null && !in.companyName().isBlank()) sb.append("Company: ").append(in.companyName().trim()).append('\n');
+        if (in.whatsapp() != null && !in.whatsapp().isBlank()) sb.append("WhatsApp: ").append(in.whatsapp().trim()).append('\n');
+        if (in.preferredContact() != null && !in.preferredContact().isBlank()) {
+            sb.append("Preferred contact location: ").append(in.preferredContact().trim()).append('\n');
+        }
+        if (in.projectType() != null && !in.projectType().isBlank()) sb.append("Project type: ").append(in.projectType().trim()).append('\n');
+        if (in.suburb() != null && !in.suburb().isBlank()) sb.append("Area / suburb: ").append(in.suburb().trim()).append('\n');
+        if (in.deliveryNotes() != null && !in.deliveryNotes().isBlank()) sb.append("Delivery notes: ").append(in.deliveryNotes().trim()).append('\n');
+        if (Boolean.TRUE.equals(in.tradeCustomer())) sb.append("Trade / bulk customer\n");
+        if (!notes.isBlank()) {
+            if (!sb.isEmpty()) sb.append('\n');
+            sb.append(notes);
+        }
+        String out = sb.toString().trim();
+        return out.isEmpty() ? null : out;
     }
 
     private List<Product> preferSkus(List<Product> list, int limit) {

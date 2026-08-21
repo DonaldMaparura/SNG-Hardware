@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-  <rect width="800" height="600" fill="#3a4a48"/>
-  <ellipse cx="300" cy="360" rx="250" ry="95" fill="#b8c0a8"/>
-  <ellipse cx="500" cy="320" rx="180" ry="70" fill="#9aa890"/>
-  <ellipse cx="400" cy="420" rx="260" ry="55" fill="#c8d0b8"/>
-  <text x="40" y="80" fill="#e8efe9" font-family="Arial" font-size="22" font-weight="700">RIVER SAND</text>
-</svg>

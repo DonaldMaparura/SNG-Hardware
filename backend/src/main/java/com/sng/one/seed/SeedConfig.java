@@ -65,14 +65,18 @@ public class SeedConfig {
             loc(locations, "CUST-01", "Customer locations", "CUSTOMER", null, null, null, null, "Delivered stock");
 
             String pw = encoder.encode("SngOne2026!");
-            AppUser admin = user(users, "admin@sng.one", pw, "Nomsa Admin", RoleCode.ADMIN, harare, Set.of(harare, byo, gweru, mutare, masvingo, wh1, wh2, wh3, wh4));
-            AppUser gm = user(users, "gm@sng.one", pw, "Tinashe General Manager", RoleCode.GENERAL_MANAGER, harare, Set.of(harare, byo, gweru, mutare, masvingo, wh1, wh2, wh3, wh4));
-            AppUser bm = user(users, "harare.manager@sng.one", pw, "Chipo Branch Manager", RoleCode.BRANCH_MANAGER, harare, Set.of(harare));
+            Set<Location> allSites = Set.of(harare, byo, gweru, mutare, masvingo, wh1, wh2, wh3, wh4);
+            AppUser admin = user(users, "admin@sng.one", pw, "Nomsa Admin", RoleCode.ADMIN, harare, allSites);
+            AppUser gm = user(users, "gm@sng.one", pw, "Tinashe General Manager", RoleCode.GENERAL_MANAGER, harare, allSites);
+            user(users, "ops@sng.one", pw, "Rutendo Operations Manager", RoleCode.OPERATIONS_MANAGER, harare, allSites);
+            user(users, "director@sng.one", pw, "Sarah Director", RoleCode.DIRECTOR, harare, allSites);
+            user(users, "director2@sng.one", pw, "Joseph Director", RoleCode.DIRECTOR, harare, allSites);
+            user(users, "harare.manager@sng.one", pw, "Chipo Branch Manager", RoleCode.BRANCH_MANAGER, harare, Set.of(harare));
             AppUser wm = user(users, "warehouse.manager@sng.one", pw, "Farai Warehouse Manager", RoleCode.WAREHOUSE_MANAGER, wh1, Set.of(wh1, wh2));
             user(users, "warehouse.op@sng.one", pw, "Rudo Warehouse Operator", RoleCode.WAREHOUSE_OPERATOR, wh1, Set.of(wh1));
-            AppUser cashier = user(users, "cashier@sng.one", pw, "Blessing Cashier", RoleCode.CASHIER, harare, Set.of(harare));
+            user(users, "cashier@sng.one", pw, "Blessing Store Operator", RoleCode.STORE_OPERATOR, harare, Set.of(harare));
             user(users, "finance@sng.one", pw, "Nyasha Finance Controller", RoleCode.FINANCE_CONTROLLER, harare, Set.of(harare, byo, gweru, mutare, masvingo, wh1));
-            user(users, "auditor@sng.one", pw, "Tariro Auditor", RoleCode.AUDITOR, harare, Set.of(harare, byo, gweru, mutare, masvingo, wh1, wh2, wh3, wh4));
+            user(users, "auditor@sng.one", pw, "Tariro Auditor", RoleCode.AUDITOR, harare, allSites);
             AppUser tendai = user(users, "driver@sng.one", pw, "Tendai Driver", RoleCode.DRIVER, wh1, Set.of(wh1, harare, gweru));
             AppUser custUser = user(users, "abc@construction.zw", pw, "ABC Construction", RoleCode.CUSTOMER, harare, Set.of());
 

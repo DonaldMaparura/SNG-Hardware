@@ -42,9 +42,11 @@ public class AuthController {
         String role = body.getOrDefault("role", "").toUpperCase();
         String email = switch (role) {
             case "GENERAL_MANAGER", "GM" -> "gm@sng.one";
+            case "OPERATIONS_MANAGER" -> "ops@sng.one";
+            case "DIRECTOR" -> "director@sng.one";
             case "BRANCH_MANAGER" -> "harare.manager@sng.one";
             case "WAREHOUSE_MANAGER" -> "warehouse.manager@sng.one";
-            case "CASHIER" -> "cashier@sng.one";
+            case "STORE_OPERATOR", "CASHIER" -> "cashier@sng.one";
             case "DRIVER" -> "driver@sng.one";
             case "FINANCE", "FINANCE_CONTROLLER" -> "finance@sng.one";
             case "AUDITOR" -> "auditor@sng.one";

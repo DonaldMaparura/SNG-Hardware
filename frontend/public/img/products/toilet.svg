@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-  <rect width="800" height="600" fill="#3a4244"/>
-  <g fill="#f2f2f0" transform="translate(280,80)">
-    <rect x="40" y="40" width="160" height="120" rx="12"/>
-    <rect x="20" y="160" width="200" height="40" rx="8"/>
-    <path d="M40 200 Q40 360 120 380 Q200 360 200 200" fill="#e8e8e6"/>
-  </g>
-  <text x="40" y="560" fill="#ddd" font-family="Arial" font-size="14">TOILET SUITE</text>
-</svg>

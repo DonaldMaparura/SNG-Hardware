@@ -1,15 +1,15 @@
 /**
- * Public customer storefront for SNG Hardware / Builders One Stop (Zimbabwe).
- * Uses verified public contacts only — do not invent branch cities.
+ * Public SNG Hardware catalogue + invoice / quotation request service.
+ * No online checkout. Verified contacts only.
  */
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import React, { FormEvent, useEffect, useState } from "react";
 import {
-  addCartLine, api, CartLine, cartQty, currentUser, getCart, getViewed,
+  addCartLine, api, CartLine, cartQty, currentUser, getCart,
   logout, pushViewed, setCart, setSession, token
 } from "./api";
 import {
-  CAT_IMG, CAT_STORY, CORE_CAT_ORDER, FEATURED_SKUS, HERO_IMGS, SERVICE_IMGS,
+  CAT_IMG, CAT_STORY, CORE_CAT_ORDER, FEATURED_SKUS, HERO_IMGS, HOME_CATS, SERVICE_IMGS,
   merchFallback, merchSrc, stockClass, stockLabel, unitLabel
 } from "./merch";
 import { SNG, isBulkCategory, money, telHref, waHref } from "./sng";
@@ -25,6 +25,9 @@ export type Product = {
 
 export { money };
 
+const PLACEHOLDER = "/img/brand/placeholder.jpg";
+const CONTACTS = SNG.contacts;
+
 function MerchImg({ product, alt, className }: { product?: Partial<Product>; alt: string; className?: string }) {
   const [src, setSrc] = useState(merchSrc(product || {}));
   useEffect(() => { setSrc(merchSrc(product || {})); }, [product?.sku, product?.imageUrl, product?.categorySlug]);
@@ -33,7 +36,11 @@ function MerchImg({ product, alt, className }: { product?: Partial<Product>; alt
       className={className}
       src={src}
       alt={alt}
-      onError={() => setSrc(merchFallback(product || {}))}
+      loading="lazy"
+      onError={() => {
+        const fb = merchFallback(product || {});
+        setSrc(fb === src ? PLACEHOLDER : fb);
+      }}
     />
   );
 }
@@ -73,16 +80,16 @@ function ToastHost() {
 
 function addProduct(p: Product, qty = 1) {
   addCartLine({ sku: p.sku, name: p.name, qty, price: p.price, imageUrl: merchSrc(p) });
-  toast(`${p.name} added to quote`);
+  toast(`${p.name} added to invoice request`);
 }
 
 function MobileActionBar() {
-  const primary = SNG.contacts[0];
+  const primary = CONTACTS[0];
   return (
-    <div className="mobile-actions" aria-label="Quick contact">
+    <div className="mobile-actions" aria-label="Quick actions">
       <a href={telHref(primary.phone)}>Call</a>
-      <a href={waHref(primary.whatsapp, "Hello SNG Hardware, I need building materials.")} target="_blank" rel="noreferrer">WhatsApp</a>
-      <Link to="/quote">Quote</Link>
+      <a className="wa" href={waHref(primary.whatsapp, "Hello SNG Hardware")} target="_blank" rel="noreferrer">WhatsApp</a>
+      <Link to="/invoice">Request invoice</Link>
     </div>
   );
 }
@@ -105,14 +112,8 @@ function StoreHeader() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [hits, setHits] = useState<Product[]>([]);
-  const [cats, setCats] = useState<{ slug: string; name: string }[]>([]);
-  const user = currentUser();
   useTick("sng-cart");
-  const primary = SNG.contacts[0];
-
-  useEffect(() => {
-    api<any[]>("/api/public/categories").then(list => setCats((list || []).filter((c: any) => !c.parentSlug))).catch(() => {});
-  }, []);
+  const primary = CONTACTS[0];
 
   useEffect(() => {
     if (q.trim().length < 2) { setHits([]); return; }
@@ -137,13 +138,11 @@ function StoreHeader() {
       <div className="hdr-top">
         <div className="wrap hdr-top-inner">
           <span className="hdr-top-left">
-            <span className="hide-sm">{SNG.headOffice.full}</span>
-            <a href={telHref(primary.phone)}>Call {primary.display}</a>
-            <a className="hide-sm" href={`mailto:${SNG.email}`}>{SNG.email}</a>
+            Head Office: {SNG.headOffice.full}
           </span>
           <span className="hdr-top-actions">
-            <a className="hide-sm" href={waHref(primary.whatsapp, "Hello SNG Hardware")} target="_blank" rel="noreferrer">WhatsApp</a>
-            <Link to="/login" className="demo-link">Management Demo</Link>
+            <a href={telHref(primary.phone)}>Phone: {primary.display}</a>
+            <a href={`mailto:${SNG.email}`}>Email: {SNG.email}</a>
           </span>
         </div>
       </div>
@@ -152,7 +151,7 @@ function StoreHeader() {
           <img src="/img/logo.png" alt="SNG Hardware — Builders One Stop" className="logo-img" />
         </Link>
         <form className="search" onSubmit={goSearch}>
-          <input placeholder="Search cement, timber, tools, SKU..." value={q} onChange={e => setQ(e.target.value)} />
+          <input placeholder="Search cement, timber, roofing, tools..." value={q} onChange={e => setQ(e.target.value)} />
           <button type="submit">Search</button>
           {q.trim().length >= 2 && (
             <div className="suggest">
@@ -162,38 +161,35 @@ function StoreHeader() {
                   <span><b>{p.name}</b><small>{p.sku} · {p.brand}</small></span>
                 </Link>
               ))}
-              {cats.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 2).map(c => (
-                <Link key={c.slug} to={"/shop/" + c.slug} onClick={() => setQ("")}>{c.name}</Link>
-              ))}
               {hits.length === 0 && (
                 <div className="suggest-empty">
-                  Can’t find what you need?
-                  <Link to="/quote">Request a quote</Link>
+                  Not listed? <Link to="/invoice">Request an invoice</Link> or{" "}
+                  <a href={waHref(primary.whatsapp, `Looking for: ${q}`)} target="_blank" rel="noreferrer">WhatsApp</a>
                 </div>
               )}
             </div>
           )}
         </form>
         <div className="hdr-utils">
-          <a className="util util-call" href={telHref(primary.phone)}>Call</a>
-          <Link to="/cart" className="util">Quote <b>{cartQty()}</b></Link>
-          {user
-            ? <Link to={user.role === "CUSTOMER" ? "/account" : "/app"} className="util">{user.fullName.split(" ")[0]}</Link>
-            : <Link to="/account" className="util">Account</Link>}
+          <a className="util util-wa" href={waHref(primary.whatsapp, "Hello SNG Hardware")} target="_blank" rel="noreferrer">WhatsApp</a>
+          <Link className="util util-quote" to="/invoice">Request invoice</Link>
+          <Link to="/invoice-list" className="util">Invoice list <b>{cartQty()}</b></Link>
           <button className="menu-btn" type="button" onClick={() => setOpen(!open)} aria-label="Menu">Menu</button>
         </div>
       </div>
       <div className={"hdr-nav-row" + (open ? " open" : "")}>
         <div className="wrap hdr-nav-inner">
           <nav className="nav">
+            <Link to="/">Home</Link>
             <Link to="/shop">Products</Link>
+            <Link to="/categories">Categories</Link>
             <Link to="/shop/cement-concrete">Cement</Link>
             <Link to="/shop/timber">Timber</Link>
             <Link to="/shop/roofing">Roofing</Link>
             <Link to="/shop/plumbing">Plumbing</Link>
             <Link to="/shop/electrical">Electrical</Link>
             <Link to="/shop/tools">Tools</Link>
-            <Link to="/specials">Specials</Link>
+            <Link to="/delivery">Delivery</Link>
             <Link to="/contact">Contact</Link>
           </nav>
         </div>
@@ -214,13 +210,21 @@ function StoreFooter() {
             {SNG.headOffice.address}<br />
             {SNG.headOffice.suburb}
           </p>
-          <p>
-            <a href={`mailto:${SNG.email}`}>{SNG.email}</a>
-          </p>
+          <p><a href={`mailto:${SNG.email}`}>{SNG.email}</a></p>
+        </div>
+        <div>
+          <h4>Quick links</h4>
+          <Link to="/shop">Products</Link>
+          <Link to="/categories">Categories</Link>
+          <Link to="/invoice">Request invoice</Link>
+          <Link to="/delivery">Delivery</Link>
+          <Link to="/timber-cut">Timber cutting</Link>
+          <Link to="/trade">Trade</Link>
+          <Link to="/contact">Contact</Link>
         </div>
         <div>
           <h4>Contacts</h4>
-          {SNG.contacts.map(c => (
+          {CONTACTS.map(c => (
             <p key={c.name}>
               <b>{c.name}</b><br />
               <a href={telHref(c.phone)}>{c.display}</a>
@@ -228,27 +232,14 @@ function StoreFooter() {
           ))}
         </div>
         <div>
-          <h4>Products</h4>
-          <Link to="/shop">All products</Link>
-          <Link to="/shop/cement-concrete">Cement</Link>
-          <Link to="/shop/timber">Timber</Link>
-          <Link to="/shop/roofing">Roofing</Link>
-          <Link to="/specials">Specials</Link>
-          <Link to="/quote">Request quote</Link>
-          <Link to="/timber-cut">Timber cutting</Link>
-          <Link to="/delivery">Delivery</Link>
-          <Link to="/trade">Trade</Link>
-        </div>
-        <div>
           <h4>Social</h4>
           <p>Facebook — {SNG.facebook}</p>
           <p>Instagram — {SNG.instagram}</p>
-          <Link to="/login" className="demo-link">Management Demo</Link>
         </div>
       </div>
       <div className="wrap footer-bottom">
         <span>{SNG.brand} · {SNG.tagline}</span>
-        <span>Demo catalogue powered by SNG ONE</span>
+        <span>Damofalls Ruwa · Zimbabwe</span>
       </div>
     </footer>
   );
@@ -271,104 +262,68 @@ function sortCategories(cats: any[]) {
 
 export function Home() {
   const [data, setData] = useState<any>(null);
-  const [viewed, setViewed] = useState<Product[]>([]);
-  const [slide, setSlide] = useState(0);
   useTick("sng-cart");
   useEffect(() => { api("/api/public/home").then(setData); }, []);
-  useEffect(() => {
-    const skus = getViewed();
-    if (!skus.length) return;
-    Promise.all(skus.slice(0, 4).map(s => api<Product>("/api/public/products/" + s).catch(() => null)))
-      .then(list => setViewed(list.filter(Boolean) as Product[]));
-  }, []);
-  useEffect(() => {
-    const t = setInterval(() => setSlide(s => (s + 1) % 3), 8000);
-    return () => clearInterval(t);
-  }, []);
   if (!data) return <div className="wrap loading-panel">Loading SNG Hardware…</div>;
 
-  const primary = SNG.contacts[0];
-  const slides = [
-    {
-      img: HERO_IMGS.yard,
-      kicker: "SNG HARDWARE · BUILDERS ONE STOP",
-      title: "EVERYTHING YOU NEED TO BUILD.",
-      copy: "Cement, timber, roofing, plumbing, electrical, tools and building materials — all in one place."
-    },
-    {
-      img: HERO_IMGS.timber,
-      kicker: "TIMBER DIVISION",
-      title: "TIMBER FOR THE JOB.",
-      copy: "Choose your sizes, request cut-to-length and arrange collection or delivery."
-    },
-    {
-      img: HERO_IMGS.delivery,
-      kicker: "DELIVERY",
-      title: "MATERIALS DELIVERED TO YOUR SITE.",
-      copy: "Bulk building materials and complete orders delivered where you need them."
-    }
-  ];
-  const hero = slides[slide];
-  const cats = sortCategories(data.categories || []);
+  const primary = CONTACTS[0];
 
   return (
     <>
-      <section className="hero" style={{ backgroundImage: `linear-gradient(100deg, rgba(20,40,22,.92) 0%, rgba(20,40,22,.55) 50%, rgba(20,40,22,.25) 100%), url(${hero.img})` }}>
+      <section
+        className="hero"
+        style={{
+          backgroundImage: `linear-gradient(105deg, rgba(18,32,20,.88) 0%, rgba(18,32,20,.55) 42%, rgba(18,32,20,.2) 100%), url(${HERO_IMGS.yard})`
+        }}
+      >
         <div className="wrap hero-inner">
-          <p className="kicker">{hero.kicker}</p>
-          <h1>{hero.title}</h1>
-          <p className="lede">{hero.copy}</p>
+          <h1>EVERYTHING YOU NEED TO BUILD.</h1>
+          <p className="lede">
+            Cement, timber, roofing, plumbing, electrical, tools and building materials for projects of every size.
+          </p>
           <div className="actions">
-            <Link className="btn gold" to="/shop">Shop products</Link>
-            <Link className="btn ghost" to="/quote">Get a quote</Link>
+            <Link className="btn gold" to="/invoice">Request invoice</Link>
+            <Link className="btn ghost" to="/shop">Browse products</Link>
             <a className="btn ghost" href={telHref(primary.phone)}>Call</a>
             <a className="btn ghost" href={waHref(primary.whatsapp, "Hello SNG Hardware")} target="_blank" rel="noreferrer">WhatsApp</a>
           </div>
-          <div className="hero-dots">
-            {slides.map((_, i) => <button key={i} type="button" className={i === slide ? "on" : ""} onClick={() => setSlide(i)} aria-label={"Slide " + (i + 1)} />)}
-          </div>
+          <ul className="hero-pills">
+            <li>Product catalogue</li>
+            <li>Invoice / quotation requests</li>
+            <li>Collection &amp; delivery</li>
+            <li>Timber cutting</li>
+          </ul>
         </div>
       </section>
 
       <section className="trust">
         <div className="wrap trust-grid">
-          <div><b>Building materials</b><span>Under one roof</span></div>
-          <div><b>Trade orders</b><span>Contractor support</span></div>
+          <div><b>Browse products</b><span>Catalogue by category</span></div>
+          <div><b>Request invoice</b><span>Price confirmed by SNG</span></div>
+          <div><b>Collection</b><span>Pick up from SNG</span></div>
           <div><b>Delivery</b><span>To your site</span></div>
-          <div><b>Timber cutting</b><span>Cut to requirement</span></div>
         </div>
       </section>
 
       <section className="wrap section">
         <div className="section-head">
-          <h2>Building materials</h2>
+          <h2>Product categories</h2>
           <Link to="/categories">All categories</Link>
         </div>
-        <div className="cat-grid">
-          {cats.map((c: any) => {
-            const story = CAT_STORY[c.slug] || { kicker: c.description || "", points: [] as string[], cta: "View" };
+        <div className="cat-grid photo-cats">
+          {HOME_CATS.map(c => {
+            const story = CAT_STORY[c.slug] || { blurb: "", cta: "View products" };
             return (
-              <Link key={c.slug} className="cat-card" to={"/shop/" + c.slug}>
-                <img src={CAT_IMG[c.slug] || merchSrc({ categorySlug: c.slug })} alt={c.name} onError={e => { e.currentTarget.src = "/img/placeholder.svg"; }} />
-                <div className="cat-card-body">
-                  <small>{story.kicker}</small>
+              <Link key={c.slug} className="cat-tile" to={c.href}>
+                <img src={CAT_IMG[c.slug] || PLACEHOLDER} alt={c.name} onError={e => { e.currentTarget.src = PLACEHOLDER; }} />
+                <div className="cat-tile-body">
                   <h3>{c.name}</h3>
-                  {story.points.length > 0 && <p>{story.points.join(" · ")}</p>}
-                  <span className="cat-cta">{story.cta}</span>
+                  <p>{story.blurb}</p>
+                  <span>{story.cta}</span>
                 </div>
               </Link>
             );
           })}
-        </div>
-      </section>
-
-      <section className="band-sand">
-        <div className="wrap section">
-          <div className="section-head">
-            <h2>Current deals</h2>
-            <Link to="/specials">View specials</Link>
-          </div>
-          <ProductGrid items={(data.specials || []).slice(0, 6)} />
         </div>
       </section>
 
@@ -380,107 +335,82 @@ export function Home() {
         <ProductGrid items={pickFeatured(data.featured, data.bestsellers)} />
       </section>
 
-      {viewed.length > 0 && (
-        <section className="wrap section">
-          <h2>Recently viewed</h2>
-          <ProductGrid items={viewed} />
-        </section>
-      )}
-
-      <section className="split-cta">
-        <img src={SERVICE_IMGS.house} alt="Building project materials" />
-        <div>
-          <p className="kicker">Material list</p>
-          <h2>Building a house?</h2>
-          <p>Send us your material list and we’ll prepare a quotation — cement, timber, roofing, plumbing, electrical and finishing.</p>
-          <div className="project-tiles">
-            {[
-              { name: "Foundation", to: "/shop/cement-concrete" },
-              { name: "Brickwork", to: "/shop/bricks-blocks" },
-              { name: "Roofing", to: "/shop/roofing" },
-              { name: "Plumbing", to: "/shop/plumbing" },
-              { name: "Electrical", to: "/shop/electrical" },
-              { name: "Finishing", to: "/shop/paint" }
-            ].map(x => (
-              <Link key={x.name} to={x.to} className="project-chip">{x.name}</Link>
-            ))}
+      <section className="band-sand">
+        <div className="wrap section invoice-cta">
+          <h2>Need an invoice or quotation?</h2>
+          <p>Add products from the catalogue, then submit your contact and collection or delivery details. SNG will confirm stock and pricing before preparing your invoice.</p>
+          <div className="actions">
+            <Link className="btn gold" to="/invoice">Request invoice</Link>
+            <Link className="btn ghost dark" to="/invoice-list">View invoice list ({cartQty()})</Link>
           </div>
-          <Link className="btn gold" to="/quote?project=house">Request material quote</Link>
+        </div>
+      </section>
+
+      <section className="house-band">
+        <div className="wrap house-inner">
+          <div className="house-copy">
+            <h2>Building a house?</h2>
+            <p>Send us your material list and let SNG price the complete job.</p>
+            <ul className="house-list">
+              <li>Cement</li><li>Bricks</li><li>Timber</li><li>Roofing</li>
+              <li>Plumbing</li><li>Electrical</li><li>Finishes</li>
+            </ul>
+            <div className="actions">
+              <Link className="btn gold" to="/invoice?project=house">Request full material invoice</Link>
+              <Link className="btn ghost dark" to="/invoice?project=house">Upload material list</Link>
+            </div>
+          </div>
+          <img className="house-photo" src={SERVICE_IMGS.house} alt="Building materials for a house" onError={e => { e.currentTarget.src = HERO_IMGS.yard; }} />
         </div>
       </section>
 
       <section className="split-cta reverse">
-        <img src={SERVICE_IMGS.cutting} alt="Timber lengths" />
+        <img src={SERVICE_IMGS.cutting} alt="Timber" onError={e => { e.currentTarget.src = HERO_IMGS.timber; }} />
         <div>
-          <p className="kicker">Timber</p>
-          <h2>Need timber cut to size?</h2>
-          <ol className="steps">
-            <li>Choose your timber</li>
-            <li>Tell us the required lengths</li>
-            <li>We prepare the cut list</li>
-            <li>Collect or arrange delivery</li>
-          </ol>
-          <Link className="btn gold" to="/timber-cut">Request timber cut</Link>
+          <h2>Timber cut to your requirements</h2>
+          <p>Example: 6.0m length cut to 2.4m + 2.4m + offcut.</p>
+          <Link className="btn gold" to="/timber-cut">Request timber quote</Link>
         </div>
       </section>
 
       <section className="split-cta">
-        <img src={SERVICE_IMGS.delivery} alt="Materials for delivery" />
+        <img src={SERVICE_IMGS.delivery} alt="Delivery" />
         <div>
-          <p className="kicker">Delivery</p>
-          <h2>We deliver to your site</h2>
-          <p>Bulk cement, timber, roofing, sand and aggregates, and full building orders delivered where you need them.</p>
-          <Link className="btn gold" to="/delivery">Request delivery quote</Link>
+          <h2>We deliver building materials to your site</h2>
+          <p>Cement · Timber · Roofing · Sand · Stone · Bulk building orders</p>
+          <Link className="btn gold" to="/delivery">Request delivery</Link>
         </div>
       </section>
 
       <section className="trade-band">
         <div className="wrap">
-          <p className="kicker">Contractors</p>
-          <h2>Trade &amp; bulk orders</h2>
-          <p>Built for contractors, builders and businesses who buy regularly.</p>
-          <ul className="benefit-list">
-            <li>Trade pricing</li>
-            <li>Bulk quotations</li>
-            <li>Repeat orders</li>
-            <li>Account support</li>
-          </ul>
+          <h2>Trade &amp; bulk customers</h2>
+          <p>Contractors, builders, companies and repeat buyers — request bulk pricing, invoices and delivery support.</p>
           <div className="actions">
-            <Link className="btn gold" to="/trade">Open a trade account</Link>
-            <Link className="btn ghost" to="/login">Trade login</Link>
+            <Link className="btn gold" to="/trade">Request trade pricing</Link>
+            <a className="btn ghost" href={telHref(primary.phone)}>Call {primary.display}</a>
           </div>
         </div>
       </section>
 
       <section className="wrap section">
         <div className="section-head">
-          <h2>Call / WhatsApp SNG</h2>
+          <h2>Contact our SNG locations</h2>
           <Link to="/contact">All contacts</Link>
         </div>
         <p className="lede-sm"><b>Head Office:</b> {SNG.headOffice.full}</p>
         <div className="branch-grid">
-          {SNG.contacts.map(c => (
+          {CONTACTS.map(c => (
             <article className="branch-card" key={c.name}>
               <h3>{c.name}</h3>
               <p className="phone-lg"><a href={telHref(c.phone)}>{c.display}</a></p>
-              <p className="muted">Contact for directions and stock.</p>
+              {c.name === "Damofalls Ruwa" && <p className="muted">{SNG.headOffice.full}</p>}
               <div className="actions">
                 <a className="btn" href={telHref(c.phone)}>Call</a>
                 <a className="btn ghost" href={waHref(c.whatsapp, `Hello SNG — ${c.name}`)} target="_blank" rel="noreferrer">WhatsApp</a>
               </div>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="final-cta">
-        <div className="wrap">
-          <h2>Need a price on a material list?</h2>
-          <p>Add products to your quote cart, or call / WhatsApp us directly. No online payment required.</p>
-          <div className="actions" style={{ justifyContent: "center" }}>
-            <Link className="btn gold" to="/quote">Request a quote</Link>
-            <a className="btn ghost" href={telHref(primary.phone)}>Call {primary.display}</a>
-          </div>
         </div>
       </section>
     </>
@@ -496,33 +426,26 @@ function ProductGrid({ items }: { items: Product[] }) {
 }
 
 function ProductCard({ p }: { p: Product }) {
-  const nav = useNavigate();
   const status = p.inStock ? "IN_STOCK" : "OUT_OF_STOCK";
-  const save = p.promotionPrice && p.retailPrice ? Number(p.retailPrice) - Number(p.promotionPrice) : 0;
   const bulk = isBulkCategory(p.categorySlug, p.sku);
   return (
     <article className="prod-card">
       <Link to={"/product/" + p.sku} className="prod-media">
-        {p.promotionPrice && <span className="promo-flag">SPECIAL</span>}
         <MerchImg product={p} alt={p.name} />
       </Link>
       <div className="prod-body">
-        <span className={"badge " + stockClass(status)}>{stockLabel(status, p.inStock)}</span>
         <small className="brand-line">{p.brand}</small>
         <Link to={"/product/" + p.sku}><h3>{p.name}</h3></Link>
-        <p className="meta">SKU {p.sku} · {unitLabel(p.unitOfMeasure)}</p>
+        <p className="meta">SKU {p.sku}</p>
         <div className="price-row">
-          {p.promotionPrice ? (
-            <>
-              <span className="was">{money(p.retailPrice)}</span>
-              <span className="price">{money(p.price)}</span>
-              {save > 0 && <span className="save">SAVE {money(save)}</span>}
-            </>
-          ) : <span className="price">{money(p.price)} <small>/ {unitLabel(p.unitOfMeasure)}</small></span>}
+          <span className="price">{money(p.price)}</span>
+          <span className="per">per {unitLabel(p.unitOfMeasure)}</span>
         </div>
+        <span className={"badge " + stockClass(status)}>{stockLabel(status, p.inStock)}</span>
+        {bulk && <p className="bulk-note">Bulk pricing available</p>}
         <div className="card-actions">
-          <button className="btn" type="button" onClick={() => { addProduct(p); if (bulk) nav("/quote"); }}>
-            {bulk ? "Request bulk quote" : "Add to quote"}
+          <button className="btn" type="button" onClick={() => addProduct(p)}>
+            {bulk ? "Bulk pricing" : "Add to invoice"}
           </button>
           <Link className="btn ghost" to={"/product/" + p.sku}>View product</Link>
         </div>
@@ -551,15 +474,15 @@ export function Shop({ promotion }: { promotion?: boolean }) {
     <div className="wrap page">
       <p className="crumb"><Link to="/">Home</Link> / {title}</p>
       <h1 className="cap">{title}</h1>
-      {story && <p className="lede-sm">{story.points.join(" · ")}</p>}
+      {story && <p className="lede-sm">{story.blurb}</p>}
       {q && <p>Results for “{q}”</p>}
       {items === null && <p>Loading products…</p>}
       {items && items.length > 0 && <ProductGrid items={items} />}
       {items && items.length === 0 && (
         <div className="empty-panel">
-          <h2>Can’t find what you need?</h2>
-          <p>Call, WhatsApp or request a quote — we’ll price custom lengths and bulk lists.</p>
-          <Link className="btn gold" to="/quote">Request a quote</Link>
+          <h2>Need something not listed?</h2>
+          <p>Call, WhatsApp or request an invoice with your material list.</p>
+          <Link className="btn gold" to="/invoice">Request invoice</Link>
         </div>
       )}
     </div>
@@ -567,22 +490,23 @@ export function Shop({ promotion }: { promotion?: boolean }) {
 }
 
 export function CategoriesPage() {
-  const [cats, setCats] = useState<any[]>([]);
-  useEffect(() => { api("/api/public/home").then((d: any) => setCats(sortCategories(d.categories || []))); }, []);
   return (
     <div className="wrap page">
       <h1>Categories</h1>
-      <div className="cat-grid">
-        {cats.map((c: any) => (
-          <Link key={c.slug} className="cat-card" to={"/shop/" + c.slug}>
-            <img src={CAT_IMG[c.slug] || "/img/placeholder.svg"} alt={c.name} />
-            <div className="cat-card-body">
-              <h3>{c.name}</h3>
-              <p>{c.description}</p>
-              <span className="cat-cta">View {c.name}</span>
-            </div>
-          </Link>
-        ))}
+      <div className="cat-grid photo-cats">
+        {HOME_CATS.map(c => {
+          const story = CAT_STORY[c.slug] || { blurb: "", cta: "View products" };
+          return (
+            <Link key={c.slug} className="cat-tile" to={c.href}>
+              <img src={CAT_IMG[c.slug] || PLACEHOLDER} alt={c.name} onError={e => { e.currentTarget.src = PLACEHOLDER; }} />
+              <div className="cat-tile-body">
+                <h3>{c.name}</h3>
+                <p>{story.blurb}</p>
+                <span>{story.cta}</span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -593,7 +517,7 @@ export function ProductPage() {
   const nav = useNavigate();
   const [p, setP] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
-  const primary = SNG.contacts[0];
+  const primary = CONTACTS[0];
   useEffect(() => {
     api<Product>("/api/public/products/" + sku).then(prod => {
       setP(prod);
@@ -606,105 +530,117 @@ export function ProductPage() {
     <div className="wrap page">
       <p className="crumb"><Link to="/shop">Products</Link> / {p.category} / {p.name}</p>
       <div className="pdp">
-        <div>
-          <div className="pdp-hero">
-            <MerchImg product={p} alt={p.name} />
-          </div>
+        <div className="pdp-hero">
+          <MerchImg product={p} alt={p.name} />
         </div>
-        <div>
+        <div className="pdp-info">
+          <p className="brand-line">{p.brand}</p>
+          <h1>{p.name}</h1>
+          <p className="meta">SKU {p.sku} · {p.category}</p>
+          <div className="price-row lg">
+            <span className="price">{money(p.price)}</span>
+            <span className="per">per {unitLabel(p.unitOfMeasure)}</span>
+          </div>
           <span className={"badge " + stockClass(p.inStock ? "IN_STOCK" : "OUT_OF_STOCK")}>
             {stockLabel(p.inStock ? "IN_STOCK" : "OUT_OF_STOCK", p.inStock)}
           </span>
-          <p className="brand-line">{p.brand}</p>
-          <h1>{p.name}</h1>
-          <p className="meta">SKU {p.sku} · {unitLabel(p.unitOfMeasure)}</p>
-          <div className="price-row lg">
-            {p.promotionPrice && <span className="was">{money(p.retailPrice)}</span>}
-            <span className="price">{money(p.price)} <small>/ {unitLabel(p.unitOfMeasure)}</small></span>
-          </div>
-          {currentUser()?.role === "CUSTOMER" && p.tradePrice
-            ? <p className="trade-price">Your trade price {money(p.tradePrice)}</p>
-            : <p className="muted">Trade pricing available on a trade account — call us to discuss.</p>}
-          <p>{p.description}</p>
-          <h3>Specifications</h3>
-          <p>{p.specification}</p>
-          <p><b>Collection or delivery</b> — call your nearest SNG contact, or add to a quote.</p>
+          {bulk && <p className="bulk-note">Ask about bulk pricing.</p>}
           <div className="pdp-actions">
-            <input type="number" min={1} value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value)))} />
-            <button className="btn" onClick={() => addProduct(p, qty)}>{bulk ? "Add to bulk quote" : "Add to quote"}</button>
-            <button className="btn gold" onClick={() => { addProduct(p, qty); nav("/quote"); }}>Request quote</button>
-          </div>
-          <div className="actions" style={{ marginTop: 12 }}>
-            <a className="btn ghost" href={telHref(primary.phone)}>Call {primary.display}</a>
-            <a className="btn ghost" href={waHref(primary.whatsapp, `Hi SNG, I need a price on ${p.name} (${p.sku})`)} target="_blank" rel="noreferrer">WhatsApp</a>
+            <input type="number" min={1} value={qty} onChange={e => setQty(Math.max(1, Number(e.target.value)))} aria-label="Quantity" />
+            <button className="btn gold" type="button" onClick={() => { addProduct(p, qty); nav("/invoice-list"); }}>Add to invoice request</button>
+            <button className="btn" type="button" onClick={() => { addProduct(p, qty); nav("/invoice"); }}>Request price</button>
+            <a className="btn ghost" href={telHref(primary.phone)}>Call</a>
+            <a className="btn ghost" href={waHref(primary.whatsapp, `Hi SNG, price on ${p.name} (${p.sku})`)} target="_blank" rel="noreferrer">WhatsApp</a>
           </div>
         </div>
       </div>
-      {p.related && p.related.length > 0 && <><h2>Related products</h2><ProductGrid items={p.related} /></>}
+      <div className="pdp-extra">
+        <div>
+          <h2>Description</h2>
+          <p>{p.description || "Available in store. Ask about stock and bulk pricing."}</p>
+          <h2>Specifications</h2>
+          <p>{p.specification || "Confirm sizes and specifications with SNG staff."}</p>
+        </div>
+        <div>
+          <h2>Collection &amp; delivery</h2>
+          <p>Call your nearest SNG contact to confirm stock, collection or truck delivery.</p>
+          <h2>Contact</h2>
+          <p>
+            <a href={telHref(primary.phone)}>{primary.display}</a> · Damofalls Ruwa<br />
+            {SNG.headOffice.full}
+          </p>
+        </div>
+      </div>
+      {p.related && p.related.length > 0 && (
+        <>
+          <h2>Related products</h2>
+          <ProductGrid items={p.related} />
+        </>
+      )}
     </div>
   );
 }
 
 export function Branches() {
-  return (
-    <div className="wrap page">
-      <h1>Contacts &amp; locations</h1>
-      <p className="lede-sm"><b>Head Office:</b> {SNG.headOffice.full}</p>
-      <p className="lede-sm">Call or WhatsApp the contact nearest to you. Ask for directions and current stock.</p>
-      <div className="branch-grid">
-        {SNG.contacts.map(c => (
-          <article className="branch-card" key={c.name} id={c.name.replace(/\s+/g, "-").toLowerCase()}>
-            <h3>{c.name}</h3>
-            <p className="phone-lg"><a href={telHref(c.phone)}>{c.display}</a></p>
-            <div className="actions">
-              <a className="btn" href={telHref(c.phone)}>Call</a>
-              <a className="btn ghost" href={waHref(c.whatsapp, `Hello SNG — ${c.name}`)} target="_blank" rel="noreferrer">WhatsApp</a>
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
+  return <Contact />;
 }
 
+/** Invoice request product list (formerly quote cart) */
 export function CartPage() {
   const [lines, setLines] = useState(getCart());
   function update(next: CartLine[]) { setCart(next); setLines(next); }
-  const total = lines.reduce((s, l) => s + l.qty * l.price, 0);
   return (
     <div className="wrap page">
-      <h1>Quote cart</h1>
-      <p>No online payment — submit this list as a quotation. Staff will confirm price, stock and delivery.</p>
-      {lines.length === 0 && <p>Your quote cart is empty. <Link to="/shop">Browse products</Link></p>}
+      <h1>Invoice request list</h1>
+      <p>Review products and quantities, then continue to request an invoice. No online payment.</p>
+      {lines.length === 0 && <p>Your list is empty. <Link to="/shop">Browse products</Link></p>}
       {lines.map(l => (
         <div className="cart-line" key={l.sku}>
-          <img src={l.imageUrl || merchSrc({ sku: l.sku })} alt="" onError={e => { e.currentTarget.src = "/img/placeholder.svg"; }} />
+          <img src={l.imageUrl || merchSrc({ sku: l.sku })} alt="" onError={e => { e.currentTarget.src = PLACEHOLDER; }} />
           <div>
             <b>{l.name}</b>
             <small>{l.sku}</small>
           </div>
           <input type="number" min={1} value={l.qty} onChange={e => update(lines.map(x => x.sku === l.sku ? { ...x, qty: Number(e.target.value) } : x))} />
-          <span>{money(l.price * l.qty)}</span>
           <button className="btn ghost" onClick={() => update(lines.filter(x => x.sku !== l.sku))}>Remove</button>
         </div>
       ))}
-      {lines.length > 0 && <p className="price">Indicative total {money(total)}</p>}
-      <Link className="btn gold" to="/quote">Request quote</Link>
+      {lines.length > 0 && <Link className="btn gold" to="/invoice">Continue — request invoice</Link>}
     </div>
   );
 }
 
 export function QuotePage() {
   const [params] = useSearchParams();
+  const project = params.get("project");
+  const timber = params.get("timber");
+  const delivery = params.get("delivery");
   const [form, setForm] = useState({
-    customerName: "", phone: "", email: "",
-    fulfilment: "COLLECTION", deliveryAddress: "",
-    notes: params.get("project") === "house" ? "House build — please quote a complete material list." :
-      params.get("timber") ? "Timber cut-to-size required." :
-      params.get("delivery") ? "Please quote site delivery." : "",
+    customerName: "",
+    companyName: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    preferredContact: CONTACTS[0].name,
+    fulfilment: delivery ? "DELIVERY" : "COLLECTION",
+    deliveryAddress: "",
+    suburb: "",
+    deliveryNotes: "",
+    projectType: project === "house" ? "Residential" : timber ? "Other" : "",
+    notes: project === "house" ? "Full material list for a house build — please price complete job." :
+      timber ? (typeof sessionStorage !== "undefined" && sessionStorage.getItem("sng.timberNotes")) || "Timber cut-to-size required. See notes for cut lengths." :
+      delivery ? "Please quote site delivery." : "",
     tradeCustomer: false
   });
-  const [contactId, setContactId] = useState<string>(SNG.contacts[0].name);
+  useEffect(() => {
+    if (timber) {
+      const t = sessionStorage.getItem("sng.timberNotes");
+      if (t) {
+        setForm(f => ({ ...f, notes: t }));
+        sessionStorage.removeItem("sng.timberNotes");
+      }
+    }
+  }, [timber]);
   const [done, setDone] = useState<{ reference: string } | null>(null);
   const [error, setError] = useState("");
 
@@ -712,34 +648,48 @@ export function QuotePage() {
     e.preventDefault();
     setError("");
     const lines = getCart();
-    if (!lines.length) { setError("Add products to the quote cart first."); return; }
+    if (!lines.length && !form.notes.trim()) {
+      setError("Add products to your invoice list, or describe your material list in notes.");
+      return;
+    }
     try {
       const created = await api<any>("/api/public/quote-requests", {
         method: "POST",
         body: JSON.stringify({
-          ...form,
-          notes: `${form.notes || ""}\nPreferred contact: ${contactId}`.trim(),
+          customerName: form.customerName,
+          companyName: form.companyName,
+          phone: form.phone,
+          whatsapp: form.whatsapp || form.phone,
+          email: form.email,
+          preferredContact: form.preferredContact,
           preferredLocationId: null,
+          fulfilment: form.fulfilment,
+          deliveryAddress: form.deliveryAddress,
+          suburb: form.suburb,
+          deliveryNotes: form.deliveryNotes,
+          projectType: form.projectType,
+          notes: form.notes,
+          tradeCustomer: form.tradeCustomer,
           lines: lines.map(l => ({ sku: l.sku, quantity: l.qty }))
         })
       });
       setCart([]);
       setDone({ reference: created.reference });
     } catch (err: any) {
-      setError(err.message || "Could not submit quote");
+      setError(err.message || "Could not submit request");
     }
   }
 
   if (done) {
     return (
       <div className="wrap page confirm">
-        <p className="kicker">Thank you</p>
-        <h1>Quote request received</h1>
+        <h1>Request received</h1>
         <p className="ref">Reference: <b>{done.reference}</b></p>
-        <p>An SNG representative will contact you to confirm stock, cutting and delivery.</p>
+        <p>Thank you. SNG will confirm stock, pricing, collection or delivery before preparing your invoice / quotation.</p>
         <div className="actions">
-          <Link className="btn gold" to="/shop">Continue shopping</Link>
-          <a className="btn ghost" href={telHref(SNG.contacts[0].phone)}>Call SNG</a>
+          <a className="btn gold" href={telHref(CONTACTS[0].phone)}>Call SNG</a>
+          <a className="btn ghost" href={waHref(CONTACTS[0].whatsapp, `Hi SNG, request ${done.reference}`)} target="_blank" rel="noreferrer">WhatsApp SNG</a>
+          <Link className="btn ghost" to="/shop">Return to products</Link>
         </div>
       </div>
     );
@@ -747,37 +697,62 @@ export function QuotePage() {
 
   return (
     <form className="wrap page quote-form" onSubmit={submit}>
-      <h1>Request a quote</h1>
-      <p>Preferred contact, collection or delivery, and your details. No card payment online.</p>
+      <h1>Request invoice</h1>
+      <p>Submit your product list and contact details. SNG staff will confirm pricing and prepare your invoice or quotation. No online payment.</p>
       <div className="quote-layout">
         <div className="quote-lines">
-          <h3>Quote cart</h3>
-          {getCart().length === 0 && <p>Cart is empty. <Link to="/shop">Add products</Link></p>}
-          {getCart().map(l => <p key={l.sku}>{l.qty} × {l.name}</p>)}
+          <h3>Selected products</h3>
+          {getCart().length === 0 && <p>List is empty. <Link to="/shop">Add products</Link> or describe materials in notes.</p>}
+          {getCart().map(l => <p key={l.sku}>{l.qty} × {l.name} <small>({l.sku})</small></p>)}
+          <p><Link to="/invoice-list">Edit quantities</Link></p>
         </div>
         <div className="quote-fields">
-          <label>Preferred contact</label>
-          <select value={contactId} onChange={e => setContactId(e.target.value)}>
-            {SNG.contacts.map(c => <option key={c.name} value={c.name}>{c.name} — {c.display}</option>)}
+          <label>Full name</label>
+          <input value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} required />
+          <label>Company / business name</label>
+          <input value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} />
+          <label>Phone number</label>
+          <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
+          <label>WhatsApp number</label>
+          <input value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} placeholder="Same as phone if blank" />
+          <label>Email address</label>
+          <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          <label>Preferred SNG location</label>
+          <select value={form.preferredContact} onChange={e => setForm({ ...form, preferredContact: e.target.value as typeof form.preferredContact })}>
+            {CONTACTS.map(c => <option key={c.name} value={c.name}>{c.name} — {c.display}</option>)}
           </select>
-          <label>Collection / Delivery</label>
+          <label>Fulfilment</label>
           <select value={form.fulfilment} onChange={e => setForm({ ...form, fulfilment: e.target.value })}>
             <option value="COLLECTION">Collection</option>
             <option value="DELIVERY">Delivery</option>
           </select>
-          <label>Delivery address</label>
-          <textarea value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="If delivery required" />
-          <label>Customer name</label>
-          <input value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} required />
-          <label>Phone</label>
-          <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} required />
-          <label>Email</label>
-          <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-          <label className="check"><input type="checkbox" checked={form.tradeCustomer} onChange={e => setForm({ ...form, tradeCustomer: e.target.checked })} /> Trade customer?</label>
-          <label>Notes</label>
+          {form.fulfilment === "DELIVERY" && (
+            <>
+              <label>Delivery address</label>
+              <textarea value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} required={form.fulfilment === "DELIVERY"} />
+              <label>Area / suburb</label>
+              <input value={form.suburb} onChange={e => setForm({ ...form, suburb: e.target.value })} />
+              <label>Delivery notes</label>
+              <textarea value={form.deliveryNotes} onChange={e => setForm({ ...form, deliveryNotes: e.target.value })} />
+            </>
+          )}
+          <label>Project type</label>
+          <select value={form.projectType} onChange={e => setForm({ ...form, projectType: e.target.value })}>
+            <option value="">Select…</option>
+            <option value="Residential">Residential</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Contractor">Contractor</option>
+            <option value="Renovation">Renovation</option>
+            <option value="Other">Other</option>
+          </select>
+          <label className="check">
+            <input type="checkbox" checked={form.tradeCustomer} onChange={e => setForm({ ...form, tradeCustomer: e.target.checked })} />
+            Trade / bulk customer
+          </label>
+          <label>Additional notes / material list</label>
           <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
           {error && <p className="error">{error}</p>}
-          <button className="btn gold" type="submit">Submit quote request</button>
+          <button className="btn gold" type="submit">Request invoice</button>
         </div>
       </div>
     </form>
@@ -794,7 +769,7 @@ export function AccountPage() {
     return (
       <div className="wrap page">
         <h1>Customer account</h1>
-        <p>Trade customers can sign in to view quotes and account details.</p>
+        <p>Trade customers with an SNG account can sign in to view invoices and statements.</p>
         <Link className="btn gold" to="/login">Sign in</Link>
       </div>
     );
@@ -812,7 +787,7 @@ export function AccountPage() {
             <div className="kpi"><span>Credit limit</span><b>{money(data.creditLimit)}</b></div>
             <div className="kpi"><span>Outstanding</span><b>{money(data.outstanding)}</b></div>
           </div>
-          <h2>My quotes</h2>
+          <h2>My requests</h2>
           <table><thead><tr><th>Ref</th><th>Status</th><th>When</th></tr></thead>
             <tbody>{(data.quotes || []).map((q: any) => <tr key={q.id}><td>{q.reference}</td><td>{q.status}</td><td>{String(q.createdAt || "").replace("T", " ").slice(0, 16)}</td></tr>)}</tbody>
           </table>
@@ -831,10 +806,11 @@ export function Contact() {
       <p>Email: <a href={`mailto:${SNG.email}`}>{SNG.email}</a></p>
       <p>Facebook: {SNG.facebook} · Instagram: {SNG.instagram}</p>
       <div className="branch-grid" style={{ marginTop: 24 }}>
-        {SNG.contacts.map(c => (
+        {CONTACTS.map(c => (
           <article className="branch-card" key={c.name}>
             <h3>{c.name}</h3>
             <p className="phone-lg"><a href={telHref(c.phone)}>{c.display}</a></p>
+            {c.name === "Damofalls Ruwa" && <p className="muted">{SNG.headOffice.full}</p>}
             <div className="actions">
               <a className="btn" href={telHref(c.phone)}>Call</a>
               <a className="btn ghost" href={waHref(c.whatsapp)} target="_blank" rel="noreferrer">WhatsApp</a>
@@ -843,7 +819,7 @@ export function Contact() {
         ))}
       </div>
       <div className="actions" style={{ marginTop: 24 }}>
-        <Link className="btn gold" to="/quote">Request a quote</Link>
+        <Link className="btn gold" to="/invoice">Request invoice</Link>
       </div>
     </div>
   );
@@ -852,19 +828,19 @@ export function Contact() {
 export function TradePage() {
   return (
     <div className="wrap page">
-      <p className="kicker">Contractors &amp; businesses</p>
-      <h1>Trade account</h1>
-      <p className="lede-sm">For contractors and builders who buy regularly from SNG Hardware.</p>
+      <h1>Trade &amp; bulk customers</h1>
+      <p className="lede-sm">For contractors, builders, companies, property developers and repeat customers.</p>
       <ul className="benefit-list">
-        <li>Trade pricing</li>
-        <li>Bulk quotations</li>
-        <li>Faster repeat ordering</li>
+        <li>Bulk pricing</li>
+        <li>Invoice requests</li>
+        <li>Repeat orders</li>
+        <li>Statements</li>
+        <li>Delivery support</li>
         <li>Account support</li>
       </ul>
       <div className="actions">
-        <Link className="btn gold" to="/quote">Request trade setup</Link>
-        <Link className="btn ghost" to="/login">Trade login</Link>
-        <a className="btn ghost" href={telHref(SNG.contacts[0].phone)}>Call {SNG.contacts[0].display}</a>
+        <Link className="btn gold" to="/invoice">Request trade pricing</Link>
+        <a className="btn ghost" href={telHref(CONTACTS[0].phone)}>Call {CONTACTS[0].display}</a>
       </div>
     </div>
   );
@@ -873,32 +849,48 @@ export function TradePage() {
 export function DeliveryPage() {
   return (
     <div className="split-cta page-split">
-      <img src={SERVICE_IMGS.delivery} alt="" />
+      <img src={SERVICE_IMGS.delivery} alt="Delivery" />
       <div>
-        <p className="kicker">Delivery</p>
-        <h1>We deliver to your site</h1>
-        <p>Bulk cement, timber, roofing, sand &amp; aggregates, and full building orders.</p>
-        <Link className="btn gold" to="/quote?delivery=1">Request delivery quote</Link>
+        <h1>Request delivery</h1>
+        <p>Cement · Timber · Roofing · Sand · Stone · Bulk building orders</p>
+        <p>Add products to your invoice list, choose delivery, and include your site address and preferred date in the notes.</p>
+        <Link className="btn gold" to="/invoice?delivery=1">Request delivery</Link>
       </div>
     </div>
   );
 }
 
 export function TimberCutPage() {
+  const [notes, setNotes] = useState("Original length:\nRequired cuts:\nQuantity:\n");
+  const nav = useNavigate();
   return (
-    <div className="split-cta page-split">
-      <img src={SERVICE_IMGS.cutting} alt="" />
-      <div>
-        <p className="kicker">Cut-to-size</p>
-        <h1>Timber cut to size</h1>
-        <ol className="steps">
-          <li>Choose your timber</li>
-          <li>Tell us the required lengths</li>
-          <li>We prepare the cut list</li>
-          <li>Collect or arrange delivery</li>
-        </ol>
-        <Link className="btn gold" to="/shop/timber">Choose timber</Link>
-        <Link className="btn ghost" to="/quote?timber=1">Request timber cut</Link>
+    <div className="wrap page">
+      <div className="split-cta page-split" style={{ margin: 0 }}>
+        <img src={SERVICE_IMGS.cutting} alt="Timber" />
+        <div>
+          <h1>Timber cut to size</h1>
+          <p>Example: 6.0m length cut to 2.4m + 2.4m + offcut.</p>
+          <ol className="steps">
+            <li>Choose timber from the catalogue (or describe it below)</li>
+            <li>Tell us original length and required cuts</li>
+            <li>Choose collection or delivery on the invoice form</li>
+          </ol>
+          <label>Cut requirements</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ width: "100%", minHeight: 100, marginBottom: 12 }} />
+          <div className="actions">
+            <Link className="btn" to="/shop/timber">Choose timber</Link>
+            <button
+              className="btn gold"
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem("sng.timberNotes", notes);
+                nav("/invoice?timber=1");
+              }}
+            >
+              Request timber quote
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -917,8 +909,8 @@ export function AboutPage() {
 
 export function StaffLogin() {
   const nav = useNavigate();
-  const [email, setEmail] = useState("gm@sng.one");
-  const [password, setPassword] = useState("SngOne2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [demo, setDemo] = useState(false);
   useEffect(() => {
@@ -949,38 +941,37 @@ export function StaffLogin() {
   }
 
   const roles = [
-    ["GENERAL_MANAGER", "Enter as General Manager"],
-    ["BRANCH_MANAGER", "Enter as Branch Manager"],
-    ["WAREHOUSE_MANAGER", "Enter as Warehouse Manager"],
-    ["CASHIER", "Enter as Cashier"],
-    ["DRIVER", "Enter as Driver"],
-    ["FINANCE", "Enter as Finance"],
-    ["AUDITOR", "Enter as Auditor"]
+    ["STORE_OPERATOR", "Store Operator"],
+    ["BRANCH_MANAGER", "Branch Manager"],
+    ["OPERATIONS_MANAGER", "Operations Manager"],
+    ["DIRECTOR", "Director"],
+    ["FINANCE", "Finance"],
+    ["DRIVER", "Driver"],
   ];
 
   return (
     <div className="staff-login">
       <div className="staff-login-card">
         <img src="/img/logo.png" alt="SNG Hardware" className="staff-logo" />
-        <h1>Management login</h1>
-        <p>Staff sign in separately from the customer store.</p>
+        <h1>Staff sign in</h1>
+        <p>Internal SNG management access only.</p>
         <form onSubmit={submit}>
           <label>Email</label>
-          <input value={email} onChange={e => setEmail(e.target.value)} />
+          <input value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" />
           <label>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit">Sign in</button>
         </form>
         {demo && (
-          <div className="demo-roles">
-            <p>Presentation shortcuts</p>
+          <div className="role-shortcuts">
+            <p>Quick access</p>
             {roles.map(([role, label]) => (
               <button key={role} className="btn ghost" type="button" onClick={() => demoEnter(role)}>{label}</button>
             ))}
           </div>
         )}
-        <p className="muted"><Link to="/">Back to store</Link></p>
+        <p className="muted"><Link to="/">Back to website</Link></p>
       </div>
     </div>
   );
@@ -988,13 +979,17 @@ export function StaffLogin() {
 
 export function homeFor(role: string) {
   switch (role) {
-    case "CASHIER": return "/app/pos";
+    case "CASHIER":
+    case "STORE_OPERATOR":
+    case "BRANCH_MANAGER":
+    case "DIRECTOR":
+    case "OPERATIONS_MANAGER":
+      return "/app";
     case "WAREHOUSE_OPERATOR": return "/app/warehouse";
     case "WAREHOUSE_MANAGER": return "/app/inventory";
     case "DRIVER": return "/app/trips";
     case "FINANCE_CONTROLLER": return "/app/accounting";
     case "AUDITOR": return "/app/audit";
-    case "BRANCH_MANAGER": return "/app/branch";
     default: return "/app";
   }
 }

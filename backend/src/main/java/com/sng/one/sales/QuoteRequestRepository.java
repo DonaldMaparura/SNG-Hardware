@@ -17,4 +17,6 @@ public interface QuoteRequestRepository extends JpaRepository<QuoteRequest, Long
     List<QuoteRequest> findByEmailIgnoreCaseOrderByCreatedAtDesc(String email);
 
     long countByCreatedAtAfter(Instant after);
+
+    long countByStatus(String status);
 }

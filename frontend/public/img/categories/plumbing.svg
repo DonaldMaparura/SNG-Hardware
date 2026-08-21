@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-  <rect width="800" height="600" fill="#2a3230"/>
-  <g fill="#d7d3c8" transform="translate(60,200)">
-    <rect x="0" y="40" width="680" height="50" rx="25"/>
-    <rect x="40" y="120" width="600" height="50" rx="25" fill="#b7b3a8"/>
-    <circle cx="40" cy="65" r="32" fill="#eee"/><circle cx="40" cy="65" r="18" fill="#1a3d1f"/>
-  </g>
-  <text x="40" y="80" fill="#8BC53F" font-family="Arial" font-size="22" font-weight="700">PVC PIPE</text>
-</svg>

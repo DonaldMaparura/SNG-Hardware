@@ -195,6 +195,19 @@ public class InternalApiController {
         return quoteRequests.findAllDetailed().stream().map(Dtos::quoteRequest).toList();
     }
 
+    @GetMapping("/enquiries/{id}")
+    public Map<String, Object> enquiry(@PathVariable Long id) {
+        return Dtos.quoteRequest(quoteRequests.findDetailed(id)
+                .orElseThrow(() -> new com.sng.one.common.BusinessException("Request not found", 404)));
+    }
+
+    public record StatusIn(String status) {}
+
+    @PostMapping("/enquiries/{id}/status")
+    public Map<String, Object> enquiryStatus(@PathVariable Long id, @RequestBody StatusIn in) {
+        return sales.updateEnquiryStatus(id, in == null ? null : in.status());
+    }
+
     @PostMapping("/enquiries/{id}/convert")
     public Map<String, Object> convert(@PathVariable Long id) {
         return sales.convertEnquiry(id);
@@ -411,12 +424,23 @@ public class InternalApiController {
         Instant startDay = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant startMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         Map<String, Object> m = new LinkedHashMap<>();
+        List<Map<String, Object>> low = lowStock();
+        long outOfStock = low.stream()
+                .filter(row -> {
+                    Object total = row.get("total");
+                    if (total instanceof BigDecimal bd) return bd.compareTo(BigDecimal.ZERO) <= 0;
+                    if (total instanceof Number n) return n.doubleValue() <= 0;
+                    return false;
+                })
+                .count();
         m.put("salesToday", pos.salesSince(startDay));
         m.put("salesMonth", pos.salesSince(startMonth));
         m.put("onlineEnquiriesToday", quoteRequests.countByCreatedAtAfter(startDay));
+        m.put("openCustomerRequests", quoteRequests.countByStatus("NEW"));
+        m.put("outOfStockCount", outOfStock);
         m.put("openOrders", sales.countOpen());
         m.put("inventoryValue", balances.totalInventoryValue());
-        m.put("lowStockCount", lowStock().size());
+        m.put("lowStockCount", low.size());
         m.put("openTransfers", transferRepo.countByStatusNotIn(List.of("COMPLETED", "CANCELLED")));
         m.put("fleet", fleet.statusCounts());
         m.put("trucksDueService", fleet.dueServiceCount());

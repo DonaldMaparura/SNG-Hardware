@@ -39,10 +39,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/demo", "/api/public/**", "/uploads/**", "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/pos/**").hasAnyRole(
-                                RoleCode.ADMIN.name(), RoleCode.GENERAL_MANAGER.name(), RoleCode.BRANCH_MANAGER.name(),
-                                RoleCode.CASHIER.name())
+                                RoleCode.ADMIN.name(), RoleCode.GENERAL_MANAGER.name(), RoleCode.OPERATIONS_MANAGER.name(),
+                                RoleCode.BRANCH_MANAGER.name(), RoleCode.STORE_OPERATOR.name(), RoleCode.CASHIER.name())
                         .requestMatchers("/api/auditor/**").hasAnyRole(
                                 RoleCode.AUDITOR.name(), RoleCode.ADMIN.name(), RoleCode.GENERAL_MANAGER.name(),
+                                RoleCode.OPERATIONS_MANAGER.name(), RoleCode.DIRECTOR.name(),
                                 RoleCode.FINANCE_CONTROLLER.name())
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

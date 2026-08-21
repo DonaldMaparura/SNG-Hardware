@@ -3,7 +3,10 @@ package com.sng.one.identity;
 public enum RoleCode {
     ADMIN,
     GENERAL_MANAGER,
+    OPERATIONS_MANAGER,
+    DIRECTOR,
     BRANCH_MANAGER,
+    STORE_OPERATOR,
     WAREHOUSE_MANAGER,
     WAREHOUSE_OPERATOR,
     CASHIER,

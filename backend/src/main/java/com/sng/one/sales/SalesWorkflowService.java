@@ -80,12 +80,30 @@ public class SalesWorkflowService {
         quote.setTax(BigDecimal.ZERO);
         quote.setTotal(sub);
         quotes.save(quote);
-        enq.setStatus("CONVERTED");
+        enq.setStatus("INVOICE_PREPARED");
         enq.setConvertedQuoteId(quote.getId());
         quoteRequests.save(enq);
         audit.record(p, "QUOTE_FROM_ENQUIRY", "Quote", quote.getReference(), enq.getReference(),
                 quote.getReference(), quote.getLocation() == null ? null : quote.getLocation().getId(), null, "WEB");
         return quoteDto(quote);
+    }
+
+    @Transactional
+    public Map<String, Object> updateEnquiryStatus(Long enquiryId, String status) {
+        currentUser.assertWritable();
+        QuoteRequest enq = quoteRequests.findDetailed(enquiryId)
+                .orElseThrow(() -> new BusinessException("Request not found", 404));
+        String next = status == null ? "" : status.trim().toUpperCase().replace(' ', '_');
+        java.util.Set<String> allowed = java.util.Set.of(
+                "NEW", "REVIEWING", "PRICING", "INVOICE_PREPARED", "SENT", "ACCEPTED", "CANCELLED");
+        if (!allowed.contains(next)) {
+            throw new BusinessException("Invalid status", 400);
+        }
+        enq.setStatus(next);
+        quoteRequests.save(enq);
+        audit.record(currentUser.require(), "REQUEST_STATUS", "QuoteRequest", enq.getReference(),
+                null, next, null, null, "APP");
+        return com.sng.one.web.Dtos.quoteRequest(enq);
     }
 
     @Transactional
