@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import React from "react";
 import { token } from "./api";
 import {
-  AccountPage, AboutPage, Branches, CartPage, CategoriesPage, Contact, DeliveryPage,
+  AboutPage, Branches, CartPage, CategoriesPage, Contact, DeliveryPage,
   Home, ProductPage, QuotePage, Shop, StaffLogin, StoreLayout, TimberCutPage, TradePage
 } from "./Storefront";
 import Console from "./console/Console";
@@ -34,10 +34,10 @@ function Store() {
         <Route path="/specials" element={<Shop promotion />} />
         <Route path="/branches" element={<Branches />} />
         <Route path="/invoice" element={<QuotePage />} />
-        <Route path="/quote" element={<QuotePage />} />
+        <Route path="/quote" element={<Navigate to="/invoice" replace />} />
         <Route path="/invoice-list" element={<CartPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/account" element={<AccountPage />} />
+        <Route path="/cart" element={<Navigate to="/invoice-list" replace />} />
+        <Route path="/account" element={<Navigate to="/invoice" replace />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/trade" element={<TradePage />} />
         <Route path="/delivery" element={<DeliveryPage />} />

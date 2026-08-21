@@ -230,6 +230,10 @@ public class PosService {
         return sales.salesSince(from);
     }
 
+    public long transactionsSince(java.time.Instant from) {
+        return sales.countSince(from);
+    }
+
     public Map<String, BigDecimal> salesByBranch() {
         Map<String, BigDecimal> map = new LinkedHashMap<>();
         for (PosSale s : sales.findAll()) {

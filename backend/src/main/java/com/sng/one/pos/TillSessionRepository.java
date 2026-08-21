@@ -21,4 +21,7 @@ interface PosSaleRepository extends JpaRepository<PosSale, Long> {
 
     @Query("select coalesce(sum(s.total),0) from PosSale s where s.createdAt >= :from and s.status = 'COMPLETED'")
     java.math.BigDecimal salesSince(Instant from);
+
+    @Query("select count(s) from PosSale s where s.createdAt >= :from and s.status = 'COMPLETED'")
+    long countSince(Instant from);
 }

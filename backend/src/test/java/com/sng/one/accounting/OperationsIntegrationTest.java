@@ -43,7 +43,7 @@ class OperationsIntegrationTest {
 
     @BeforeEach
     void setup() {
-        shop = loc("HAR-01", "Harare", "SHOP");
+        shop = loc("DAM-01", "Damofalls Ruwa", "SHOP");
         warehouse = loc("WH-01", "Warehouse 1", "WAREHOUSE");
         truckLoc = loc("TRK-04", "SNG-04", "TRUCK");
         damage = loc("DMG-01", "Damage", "DAMAGE");
@@ -101,11 +101,14 @@ class OperationsIntegrationTest {
 
     @Test
     void onlineQuoteCreatesInternalEnquiry() {
-        var body = new StorefrontController.QuoteIn("ABC Construction", "077", "abc@construction.zw",
-                shop.getId(), "DELIVERY", "Borrowdale", "House build", false,
+        var body = new StorefrontController.QuoteIn(
+                "ABC Construction", "ABC Construction", "077", "077", "abc@construction.zw",
+                shop.getId(), "Damofalls Ruwa", "DELIVERY", "Ruwa site", "Ruwa",
+                "Gate codes on arrival", "Commercial", "House build materials", false,
                 List.of(new StorefrontController.QuoteLineIn(cement.getId(), "CEM-PPC-50", new BigDecimal("100"))));
         var created = storefront.createQuote(body, null);
         assertEquals("NEW", created.get("status"));
+        assertTrue(String.valueOf(created.get("reference")).startsWith("SNG-REQ-"));
         assertEquals(1, quoteRequests.count());
     }
 
@@ -136,7 +139,7 @@ class OperationsIntegrationTest {
 
     private Location loc(String code, String name, String type) {
         Location l = new Location();
-        l.setCode(code); l.setName(name); l.setType(type); l.setCity("Harare");
+        l.setCode(code); l.setName(name); l.setType(type); l.setCity("Damofalls Ruwa");
         return locations.save(l);
     }
 

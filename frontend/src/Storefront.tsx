@@ -925,7 +925,7 @@ export function StaffLogin() {
         method: "POST", body: JSON.stringify({ email, password })
       });
       setSession(res.token, res.user);
-      nav(res.user.role === "CUSTOMER" ? "/account" : homeFor(res.user.role));
+      nav(res.user.role === "CUSTOMER" ? "/invoice" : homeFor(res.user.role));
     } catch (err: any) { setError(err.message); }
   }
 
@@ -936,7 +936,7 @@ export function StaffLogin() {
         method: "POST", body: JSON.stringify({ role })
       });
       setSession(res.token, res.user);
-      nav(res.user.role === "CUSTOMER" ? "/account" : homeFor(res.user.role));
+      nav(res.user.role === "CUSTOMER" ? "/invoice" : homeFor(res.user.role));
     } catch (err: any) { setError(err.message); }
   }
 

@@ -52,29 +52,29 @@ export function Overview() {
 
         <div className="ops-metrics">
           <div className="ops-metric"><span>Today's sales</span><b>{money(d.salesToday)}</b></div>
+          <div className="ops-metric"><span>Transactions</span><b>{d.transactionsToday ?? "—"}</b></div>
           <div className="ops-metric">
             <span>Money received</span>
             <b>{money(d.moneyReceived ?? d.salesToday)}</b>
-            {d.moneyBreakdown && <small>{Object.entries(d.moneyBreakdown).map(([k, v]) => `${k} ${money(v as number)}`).join(" · ")}</small>}
           </div>
           {!focusedBranch && (
             <div className={`ops-metric ${till?.open ? "ok" : ""}`}>
-              <span>Till position</span>
+              <span>Expected cash</span>
               <b>{till?.open ? money(till.openingFloat) : "—"}</b>
-              <small>{till?.open ? "Float open" : "No open till"}</small>
+              <small>{till?.open ? "Opening float (till open)" : "No open till"}</small>
             </div>
           )}
           <div className="ops-metric"><span>Stock value</span><b>{money(d.inventoryValue)}</b></div>
           <div className={`ops-metric ${d.lowStockCount ? "warn" : ""}`}><span>Low stock</span><b>{d.lowStockCount ?? 0}</b></div>
           <div className={`ops-metric ${(d.outOfStockCount || 0) ? "danger" : ""}`}><span>Out of stock</span><b>{d.outOfStockCount ?? 0}</b></div>
+          <div className="ops-metric"><span>Requests</span><b>{d.openCustomerRequests ?? d.onlineEnquiriesToday ?? 0}</b></div>
         </div>
 
         <div className="ops-actions">
           <Link className="ops-btn" to="/app/pos">New sale</Link>
+          <Link className="ops-btn ghost" to="/app/inventory">Stock</Link>
           <Link className="ops-btn ghost" to="/app/purchasing">Receive</Link>
           <Link className="ops-btn ghost" to="/app/transfers">Transfer</Link>
-          <Link className="ops-btn ghost" to="/app/inventory">Count / stock</Link>
-          <Link className="ops-btn ghost" to="/app/enquiries">Requests</Link>
         </div>
 
         <Exceptions d={d} />
@@ -94,13 +94,13 @@ export function Overview() {
 
       <div className="ops-metrics">
         <div className="ops-metric"><span>Sales today</span><b>{money(d.salesToday)}</b></div>
-        <div className="ops-metric"><span>Sales this month</span><b>{money(d.salesMonth)}</b></div>
-        <div className="ops-metric"><span>Open requests</span><b>{d.openCustomerRequests ?? d.onlineEnquiriesToday ?? 0}</b></div>
-        <div className="ops-metric"><span>Open orders</span><b>{d.openOrders ?? 0}</b></div>
+        <div className="ops-metric"><span>Transactions</span><b>{d.transactionsToday ?? 0}</b></div>
+        <div className="ops-metric"><span>Money received</span><b>{money(d.moneyReceived ?? d.salesToday)}</b></div>
         <div className="ops-metric"><span>Inventory value</span><b>{money(d.inventoryValue)}</b></div>
         <div className={`ops-metric ${d.lowStockCount ? "warn" : ""}`}><span>Low stock</span><b>{d.lowStockCount ?? 0}</b></div>
         <div className={`ops-metric ${(d.outOfStockCount || 0) ? "danger" : ""}`}><span>Out of stock</span><b>{d.outOfStockCount ?? 0}</b></div>
-        <div className="ops-metric"><span>Open transfers</span><b>{d.openTransfers ?? 0}</b></div>
+        <div className="ops-metric"><span>Open requests</span><b>{d.openCustomerRequests ?? 0}</b></div>
+        <div className="ops-metric"><span>Transfers in transit</span><b>{d.openTransfers ?? 0}</b></div>
         <div className="ops-metric"><span>Credit outstanding</span><b>{money(d.creditOutstanding)}</b></div>
       </div>
 
@@ -696,9 +696,9 @@ export function Transfers() {
     api<any[]>("/api/locations").then(setLocs);
     api<any[]>("/api/fleet/trucks").then(setTrucks).catch(() => setTrucks([]));
   }, []);
-  const wh = locs.find(l => l.code === "WH-01");
-  const shop = locs.find(l => l.code === "GWE-01" || l.name?.includes("Gweru"));
-  const truck = trucks.find(t => t.vehicleCode === "SNG-04");
+  const wh = locs.find(l => l.code === "WH-01") || locs.find((l: any) => l.type === "WAREHOUSE");
+  const shop = locs.find(l => l.code === "TRB-01") || locs.find(l => l.name === "Trabablas Fidelity") || locs.find((l: any) => l.type === "SHOP");
+  const truck = trucks.find(t => t.vehicleCode === "SNG-04") || trucks[0];
   return (
     <>
       <h1>Transfers</h1>

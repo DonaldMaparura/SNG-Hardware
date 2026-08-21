@@ -435,6 +435,8 @@ public class InternalApiController {
                 .count();
         m.put("salesToday", pos.salesSince(startDay));
         m.put("salesMonth", pos.salesSince(startMonth));
+        m.put("transactionsToday", pos.transactionsSince(startDay));
+        m.put("moneyReceived", pos.salesSince(startDay));
         m.put("onlineEnquiriesToday", quoteRequests.countByCreatedAtAfter(startDay));
         m.put("openCustomerRequests", quoteRequests.countByStatus("NEW"));
         m.put("outOfStockCount", outOfStock);

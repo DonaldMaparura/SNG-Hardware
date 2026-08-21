@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -37,48 +38,110 @@ import java.util.Set;
 @Configuration
 public class SeedConfig {
     @Bean
+    CommandLineRunner hardenLegacyLocations(LocationRepository locations, AppUserRepository users) {
+        return args -> {
+            renameLoc(locations, "HAR-01", "Damofalls Ruwa", "21626 Tarisa Road", "Damofalls Ruwa", "0776 410 181");
+            renameLoc(locations, "BYO-01", "Mbare Magaba", null, "Mbare Magaba", "0787 663 663");
+            renameLoc(locations, "GWE-01", "Simon Mazorodze", null, "Simon Mazorodze", "0775 663 663");
+            renameLoc(locations, "MUT-01", "Trabablas Fidelity", null, "Trabablas Fidelity", "0786 602 860");
+            locations.findByCode("MSV-01").ifPresent(l -> {
+                l.setActive(false);
+                l.setName("Archived");
+                l.setCity(null);
+                l.setAddress(null);
+                locations.save(l);
+            });
+            renameLoc(locations, "WH-01", "Warehouse 1", null, null, null);
+            renameLoc(locations, "WH-02", "Warehouse 2", null, null, null);
+            renameLoc(locations, "WH-03", "Warehouse 3", null, null, null);
+            renameLoc(locations, "WH-04", "Warehouse 4", null, null, null);
+            renameLoc(locations, "TRK-01", "Truck SNG-01", null, "Damofalls Ruwa", null);
+            renameLoc(locations, "TRK-02", "Truck SNG-02", null, "Mbare Magaba", null);
+            renameLoc(locations, "TRK-03", "Truck SNG-03", null, "Simon Mazorodze", null);
+            renameLoc(locations, "TRK-04", "Truck SNG-04", null, "Damofalls Ruwa", null);
+            renameLoc(locations, "DMG-01", "Damage / Write-off", null, null, null);
+            users.findByEmailIgnoreCase("harare.manager@sng.one").ifPresent(u -> {
+                if (users.findByEmailIgnoreCase("damofalls.manager@sng.one").isEmpty()) {
+                    u.setEmail("damofalls.manager@sng.one");
+                    users.save(u);
+                }
+            });
+        };
+    }
+
+    private static void renameLoc(LocationRepository repo, String code, String name, String address, String city, String phone) {
+        repo.findByCode(code).ifPresent(l -> {
+            l.setName(name);
+            if (address != null) l.setAddress(address);
+            else l.setAddress(null);
+            l.setCity(city);
+            if (phone != null) l.setPhone(phone);
+            repo.save(l);
+        });
+    }
+
+    @Bean
     CommandLineRunner seed(AppUserRepository users, LocationRepository locations, CategoryRepository categories,
                            ProductRepository products, InventoryService inventory, GlAccountRepository accounts,
                            CustomerRepository customers, CustomerAddressRepository addresses, TruckRepository trucks,
                            SupplierRepository suppliers, QuoteRequestRepository enquiries, PasswordEncoder encoder,
                            AccountingService accounting, AuditService audit,
+                           com.sng.one.pos.PosSeedSupport posSeed,
+                           com.sng.one.transfer.TransferSeedSupport transferSeed,
                            org.springframework.core.env.Environment env) {
         return args -> {
             if (users.count() > 0) return;
             if (!env.getProperty("sng.seed", Boolean.class, true)) return;
 
-            Location harare = loc(locations, "HAR-01", "Harare Branch", "SHOP", "1 Simon Mazorodze Rd", "Harare", "+263 242 621000", "Mon–Sat 07:00–17:00", "POS, collection, quotes, deliveries");
-            Location byo = loc(locations, "BYO-01", "Bulawayo Branch", "SHOP", "12 Khami Road", "Bulawayo", "+263 292 88011", "Mon–Sat 07:00–17:00", "POS, collection, quotes");
-            Location gweru = loc(locations, "GWE-01", "Gweru Branch", "SHOP", "Main Street", "Gweru", "+263 254 22011", "Mon–Sat 07:30–16:30", "POS, collection");
-            Location mutare = loc(locations, "MUT-01", "Mutare Branch", "SHOP", "Aerodrome Road", "Mutare", "+263 20 64611", "Mon–Sat 07:30–16:30", "POS, collection");
-            Location masvingo = loc(locations, "MSV-01", "Masvingo Branch", "SHOP", "Hughes Street", "Masvingo", "+263 39 262011", "Mon–Sat 07:30–16:30", "POS, collection");
-            Location wh1 = loc(locations, "WH-01", "Warehouse 1 — Harare DC", "WAREHOUSE", "Willowvale Industrial", "Harare", "+263 242 621100", "Mon–Sat 06:00–18:00", "Receiving, transfers, timber cutting");
-            Location wh2 = loc(locations, "WH-02", "Warehouse 2 — Bulawayo DC", "WAREHOUSE", "Belmont", "Bulawayo", "+263 292 88090", "Mon–Sat 06:00–18:00", "Receiving, transfers");
-            Location wh3 = loc(locations, "WH-03", "Warehouse 3 — Gweru DC", "WAREHOUSE", "Light Industrial", "Gweru", "+263 254 22090", "Mon–Fri 07:00–17:00", "Receiving");
-            Location wh4 = loc(locations, "WH-04", "Warehouse 4 — Mutare DC", "WAREHOUSE", "Industrial Area", "Mutare", "+263 20 64690", "Mon–Fri 07:00–17:00", "Receiving");
-            Location t1 = loc(locations, "TRK-01", "Truck SNG-01", "TRUCK", null, "Harare", null, null, "Fleet");
-            Location t2 = loc(locations, "TRK-02", "Truck SNG-02", "TRUCK", null, "Bulawayo", null, null, "Fleet");
-            Location t3 = loc(locations, "TRK-03", "Truck SNG-03", "TRUCK", null, "Gweru", null, null, "Fleet");
-            Location t4 = loc(locations, "TRK-04", "Truck SNG-04", "TRUCK", null, "Harare", null, null, "Fleet");
-            loc(locations, "TRANSIT-01", "In Transit", "IN_TRANSIT", null, null, null, null, "Stock moving");
-            loc(locations, "DMG-01", "Damage / Write-off", "DAMAGE", "Warehouse 1 quarantine", "Harare", null, null, "Damaged goods");
+            // Operational stores (verified SNG contacts)
+            Location damofalls = loc(locations, "DAM-01", "Damofalls Ruwa", "SHOP",
+                    "21626 Tarisa Road", "Damofalls Ruwa", "0776 410 181", "Mon–Sat 07:00–17:00",
+                    "POS, collection, invoices, deliveries");
+            Location mbare = loc(locations, "MBA-01", "Mbare Magaba", "SHOP",
+                    null, "Mbare Magaba", "0787 663 663", "Mon–Sat 07:00–17:00",
+                    "POS, collection, invoices");
+            Location mazorodze = loc(locations, "SMZ-01", "Simon Mazorodze", "SHOP",
+                    null, "Simon Mazorodze", "0775 663 663", "Mon–Sat 07:00–17:00",
+                    "POS, collection, invoices");
+            Location trabablas = loc(locations, "TRB-01", "Trabablas Fidelity", "SHOP",
+                    null, "Trabablas Fidelity", "0786 602 860", "Mon–Sat 07:00–17:00",
+                    "POS, collection, invoices");
+
+            Location wh1 = loc(locations, "WH-01", "Warehouse 1", "WAREHOUSE",
+                    null, null, null, "Mon–Sat 06:00–18:00", "Receiving, transfers, timber cutting");
+            Location wh2 = loc(locations, "WH-02", "Warehouse 2", "WAREHOUSE",
+                    null, null, null, "Mon–Sat 06:00–18:00", "Receiving, transfers");
+            Location wh3 = loc(locations, "WH-03", "Warehouse 3", "WAREHOUSE",
+                    null, null, null, "Mon–Fri 07:00–17:00", "Receiving");
+            Location wh4 = loc(locations, "WH-04", "Warehouse 4", "WAREHOUSE",
+                    null, null, null, "Mon–Fri 07:00–17:00", "Receiving");
+
+            Location t1 = loc(locations, "TRK-01", "Truck SNG-01", "TRUCK", null, "Damofalls Ruwa", null, null, "Fleet");
+            Location t2 = loc(locations, "TRK-02", "Truck SNG-02", "TRUCK", null, "Mbare Magaba", null, null, "Fleet");
+            Location t3 = loc(locations, "TRK-03", "Truck SNG-03", "TRUCK", null, "Simon Mazorodze", null, null, "Fleet");
+            Location t4 = loc(locations, "TRK-04", "Truck SNG-04", "TRUCK", null, "Damofalls Ruwa", null, null, "Fleet");
+            Location transit = loc(locations, "TRANSIT-01", "In Transit", "IN_TRANSIT", null, null, null, null, "Stock moving");
+            loc(locations, "DMG-01", "Damage / Write-off", "DAMAGE", null, null, null, null, "Damaged goods");
             loc(locations, "CUST-01", "Customer locations", "CUSTOMER", null, null, null, null, "Delivered stock");
 
             String pw = encoder.encode("SngOne2026!");
-            Set<Location> allSites = Set.of(harare, byo, gweru, mutare, masvingo, wh1, wh2, wh3, wh4);
-            AppUser admin = user(users, "admin@sng.one", pw, "Nomsa Admin", RoleCode.ADMIN, harare, allSites);
-            AppUser gm = user(users, "gm@sng.one", pw, "Tinashe General Manager", RoleCode.GENERAL_MANAGER, harare, allSites);
-            user(users, "ops@sng.one", pw, "Rutendo Operations Manager", RoleCode.OPERATIONS_MANAGER, harare, allSites);
-            user(users, "director@sng.one", pw, "Sarah Director", RoleCode.DIRECTOR, harare, allSites);
-            user(users, "director2@sng.one", pw, "Joseph Director", RoleCode.DIRECTOR, harare, allSites);
-            user(users, "harare.manager@sng.one", pw, "Chipo Branch Manager", RoleCode.BRANCH_MANAGER, harare, Set.of(harare));
+            Set<Location> allSites = Set.of(damofalls, mbare, mazorodze, trabablas, wh1, wh2, wh3, wh4);
+            Set<Location> opsSites = Set.of(damofalls, mbare, mazorodze, trabablas, wh1, wh2, wh3, wh4);
+
+            AppUser admin = user(users, "admin@sng.one", pw, "Nomsa Admin", RoleCode.ADMIN, damofalls, allSites);
+            AppUser gm = user(users, "gm@sng.one", pw, "Tinashe General Manager", RoleCode.GENERAL_MANAGER, damofalls, allSites);
+            AppUser ops = user(users, "ops@sng.one", pw, "Rutendo Operations Manager", RoleCode.OPERATIONS_MANAGER, damofalls, opsSites);
+            user(users, "director@sng.one", pw, "Sarah Director", RoleCode.DIRECTOR, damofalls, allSites);
+            user(users, "director2@sng.one", pw, "Joseph Director", RoleCode.DIRECTOR, damofalls, allSites);
+            user(users, "damofalls.manager@sng.one", pw, "Chipo Branch Manager", RoleCode.BRANCH_MANAGER, damofalls, Set.of(damofalls));
             AppUser wm = user(users, "warehouse.manager@sng.one", pw, "Farai Warehouse Manager", RoleCode.WAREHOUSE_MANAGER, wh1, Set.of(wh1, wh2));
             user(users, "warehouse.op@sng.one", pw, "Rudo Warehouse Operator", RoleCode.WAREHOUSE_OPERATOR, wh1, Set.of(wh1));
-            user(users, "cashier@sng.one", pw, "Blessing Store Operator", RoleCode.STORE_OPERATOR, harare, Set.of(harare));
-            user(users, "finance@sng.one", pw, "Nyasha Finance Controller", RoleCode.FINANCE_CONTROLLER, harare, Set.of(harare, byo, gweru, mutare, masvingo, wh1));
-            user(users, "auditor@sng.one", pw, "Tariro Auditor", RoleCode.AUDITOR, harare, allSites);
-            AppUser tendai = user(users, "driver@sng.one", pw, "Tendai Driver", RoleCode.DRIVER, wh1, Set.of(wh1, harare, gweru));
-            AppUser custUser = user(users, "abc@construction.zw", pw, "ABC Construction", RoleCode.CUSTOMER, harare, Set.of());
+            AppUser operator = user(users, "cashier@sng.one", pw, "Blessing Store Operator", RoleCode.STORE_OPERATOR, damofalls, Set.of(damofalls));
+            user(users, "finance@sng.one", pw, "Nyasha Finance Controller", RoleCode.FINANCE_CONTROLLER, damofalls,
+                    Set.of(damofalls, mbare, mazorodze, trabablas, wh1));
+            user(users, "auditor@sng.one", pw, "Tariro Auditor", RoleCode.AUDITOR, damofalls, allSites);
+            AppUser tendai = user(users, "driver@sng.one", pw, "Tendai Driver", RoleCode.DRIVER, wh1, Set.of(wh1, damofalls, mbare));
+            AppUser custUser = user(users, "abc@construction.zw", pw, "ABC Construction", RoleCode.CUSTOMER, damofalls, Set.of());
 
             gl(accounts, "1000", "Cash", "ASSET");
             gl(accounts, "1010", "Bank", "ASSET");
@@ -139,32 +202,37 @@ public class SeedConfig {
 
             moreProducts(products, cement, timber, roofing, bricks, plumbing, electrical, paint, doors, tools, sand);
 
-            List<Location> shops = List.of(harare, byo, gweru, mutare, masvingo);
+            List<Location> shopList = List.of(damofalls, mbare, mazorodze, trabablas);
             List<Location> whs = List.of(wh1, wh2, wh3, wh4);
             for (Product p : products.findAll()) {
                 int i = 0;
-                for (Location s : shops) {
+                for (Location s : shopList) {
                     BigDecimal qty = switch (i++) {
-                        case 0 -> qtyFor(p, 183);
-                        case 1 -> qtyFor(p, 221);
-                        case 2 -> qtyFor(p, 94);
-                        case 3 -> qtyFor(p, 202);
-                        default -> qtyFor(p, 114);
+                        case 0 -> qtyFor(p, 320);   // Damofalls — healthy
+                        case 1 -> qtyFor(p, 210);   // Mbare
+                        case 2 -> qtyFor(p, 55);    // Simon — tighter / some low
+                        default -> qtyFor(p, 140);  // Trabablas
                     };
                     inventory.seedBalance(p, s, qty);
                 }
                 i = 0;
                 for (Location w : whs) {
                     BigDecimal qty = switch (i++) {
-                        case 0 -> qtyFor(p, 1024);
-                        case 1 -> qtyFor(p, 618);
-                        case 2 -> qtyFor(p, 221);
-                        default -> qtyFor(p, 165);
+                        case 0 -> qtyFor(p, 900);
+                        case 1 -> qtyFor(p, 620);
+                        case 2 -> qtyFor(p, 480);
+                        default -> qtyFor(p, 350);
                     };
                     inventory.seedBalance(p, w, qty);
                 }
             }
-            inventory.seedBalance(ppc, t4, new BigDecimal("100"));
+            // Simon Mazorodze — force low stock on paint
+            inventory.seedBalance(paint20, mazorodze, new BigDecimal("8"));
+            // Trabablas — out of stock on IBR roofing
+            inventory.seedBalance(roof, trabablas, BigDecimal.ZERO);
+            // Stock in transit (PPC cement moving to Trabablas)
+            inventory.seedBalance(ppc, transit, new BigDecimal("100"));
+            inventory.seedBalance(ppc, t4, new BigDecimal("40"));
 
             Customer abc = new Customer();
             abc.setUser(custUser);
@@ -172,15 +240,15 @@ public class SeedConfig {
             abc.setName("ABC Construction");
             abc.setType("TRADE");
             abc.setEmail("abc@construction.zw");
-            abc.setPhone("+263 77 212 0001");
+            abc.setPhone("0772 410 200");
             abc.setCreditLimit(new BigDecimal("25000"));
-            abc.setOutstanding(new BigDecimal("8000"));
+            abc.setOutstanding(new BigDecimal("4200"));
             customers.save(abc);
             CustomerAddress addr = new CustomerAddress();
             addr.setCustomer(abc);
             addr.setLabel("Site office");
-            addr.setLine1("Stand 44, Borrowdale Brooke");
-            addr.setCity("Harare");
+            addr.setLine1("Plot 12, Ruwa Growth Point");
+            addr.setCity("Ruwa");
             addr.setDefault(true);
             addresses.save(addr);
 
@@ -189,7 +257,7 @@ public class SeedConfig {
             walk.setName("Walk-in Retail");
             walk.setType("RETAIL");
             walk.setEmail("walkin@sng.one");
-            walk.setPhone("+263 77 000 0000");
+            walk.setPhone("0770 000 000");
             customers.save(walk);
 
             Supplier ppcSup = new Supplier();
@@ -209,34 +277,85 @@ public class SeedConfig {
             truck(trucks, "AFQ-1403", "SNG-03", "UD", "Croner", null, t3, 72000, 70000, 85000);
 
             QuoteRequest q = new QuoteRequest();
-            q.setReference("ENQ-000041");
+            q.setReference("SNG-REQ-00041");
             q.setCustomer(abc);
             q.setCustomerName("ABC Construction");
             q.setPhone(abc.getPhone());
             q.setEmail(abc.getEmail());
-            q.setPreferredLocation(harare);
+            q.setPreferredLocation(damofalls);
             q.setFulfilment("DELIVERY");
-            q.setDeliveryAddress("Stand 44, Borrowdale Brooke, Harare");
-            q.setNotes("House build — need delivery this week");
+            q.setDeliveryAddress("Plot 12, Ruwa Growth Point");
+            q.setNotes("Company: ABC Construction\nWhatsApp: 0772 410 200\nPreferred contact location: Damofalls Ruwa\nProject type: Commercial\nHouse / slab materials — confirm stock and delivery.");
             q.setStatus("NEW");
             addLine(q, ppc, 100, ppc.getRetailPrice());
-            addLine(q, pine60, 20, pine60.getRetailPrice());
-            addLine(q, roof, 40, roof.getPromotionPrice() == null ? roof.getRetailPrice() : roof.getPromotionPrice());
+            addLine(q, pine60, 40, pine60.getRetailPrice());
+            addLine(q, roof, 30, roof.getPromotionPrice() == null ? roof.getRetailPrice() : roof.getPromotionPrice());
             enquiries.save(q);
 
+            QuoteRequest q2 = new QuoteRequest();
+            q2.setReference("SNG-REQ-00042");
+            q2.setCustomerName("Tendai Builders");
+            q2.setPhone("0783 221 100");
+            q2.setEmail("tendai.builders@email.com");
+            q2.setPreferredLocation(mbare);
+            q2.setFulfilment("COLLECTION");
+            q2.setNotes("Company: Tendai Builders\nPreferred contact location: Mbare Magaba\nProject type: Contractor");
+            q2.setStatus("REVIEWING");
+            addLine(q2, paint20, 12, paint20.getRetailPrice());
+            addLine(q2, pipe, 20, pipe.getRetailPrice());
+            enquiries.save(q2);
+
+            // Today's till + sales story across branches
+            Instant morning = Instant.now().minusSeconds(4 * 3600);
+            var tillDam = posSeed.openTill(operator, damofalls, new BigDecimal("150.00"), morning);
+            posSeed.completeSale(tillDam, operator, damofalls, "SNG-DAM-0001201", morning.plusSeconds(900), "CASH",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(ppc, new BigDecimal("20"), ppc.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(hammer, new BigDecimal("2"), hammer.getRetailPrice())));
+            posSeed.completeSale(tillDam, operator, damofalls, "SNG-DAM-0001202", morning.plusSeconds(2400), "ECOCASH",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(pine36, new BigDecimal("15"), pine36.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(paint20, new BigDecimal("4"), paint20.getRetailPrice())));
+            posSeed.completeSale(tillDam, operator, damofalls, "SNG-DAM-0001203", morning.plusSeconds(4800), "CARD",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(river, new BigDecimal("3"), river.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(cable, new BigDecimal("2"), cable.getRetailPrice())));
+            posSeed.completeSale(tillDam, operator, damofalls, "SNG-DAM-0001204", morning.plusSeconds(7200), "BANK_TRANSFER",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(ppc, new BigDecimal("50"), ppc.getRetailPrice())));
+
+            AppUser mbareOp = user(users, "mbare.operator@sng.one", pw, "Tariro Magaba Operator", RoleCode.STORE_OPERATOR, mbare, Set.of(mbare));
+            var tillMba = posSeed.openTill(mbareOp, mbare, new BigDecimal("100.00"), morning);
+            posSeed.completeSale(tillMba, mbareOp, mbare, "SNG-MBA-0000881", morning.plusSeconds(1100), "CASH",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(ppc, new BigDecimal("30"), ppc.getRetailPrice())));
+            posSeed.completeSale(tillMba, mbareOp, mbare, "SNG-MBA-0000882", morning.plusSeconds(3500), "ECOCASH",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(stone, new BigDecimal("2"), stone.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(pipe, new BigDecimal("10"), pipe.getRetailPrice())));
+
+            AppUser smzOp = user(users, "mazorodze.operator@sng.one", pw, "Farai Mazorodze Operator", RoleCode.STORE_OPERATOR, mazorodze, Set.of(mazorodze));
+            var tillSmz = posSeed.openTill(smzOp, mazorodze, new BigDecimal("80.00"), morning);
+            posSeed.completeSale(tillSmz, smzOp, mazorodze, "SNG-SMZ-0000411", morning.plusSeconds(2000), "CASH",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(brick, new BigDecimal("500"), brick.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(lafarge, new BigDecimal("10"), lafarge.getRetailPrice())));
+
+            AppUser trbOp = user(users, "trabablas.operator@sng.one", pw, "Grace Trabablas Operator", RoleCode.STORE_OPERATOR, trabablas, Set.of(trabablas));
+            var tillTrb = posSeed.openTill(trbOp, trabablas, new BigDecimal("90.00"), morning);
+            posSeed.completeSale(tillTrb, trbOp, trabablas, "SNG-TRB-0000331", morning.plusSeconds(1600), "CARD",
+                    List.of(new com.sng.one.pos.PosSeedSupport.Line(pine60, new BigDecimal("8"), pine60.getRetailPrice()),
+                            new com.sng.one.pos.PosSeedSupport.Line(toilet, new BigDecimal("1"), toilet.getRetailPrice())));
+
+            transferSeed.inTransit("TRF-000188", wh1, trabablas, sng04, tendai, ops, ppc, new BigDecimal("100"));
+            transferSeed.inTransit("TRF-000189", mbare, mazorodze, sng04, tendai, ops, paint20, new BigDecimal("20"));
+
             accounting.post("Opening inventory capitalisation", "SEED", 0L, List.of(
-                    AccountingService.Line.dr("1400", new BigDecimal("2500000.00"), "Opening stock"),
-                    AccountingService.Line.cr("3000", new BigDecimal("2500000.00"), "Opening equity")
+                    AccountingService.Line.dr("1400", new BigDecimal("185000.00"), "Opening stock"),
+                    AccountingService.Line.cr("3000", new BigDecimal("185000.00"), "Opening equity")
             ));
-            accounting.post("Demo POS sale seed", "POS_SALE", 0L, List.of(
-                    AccountingService.Line.dr("1000", new BigDecimal("105.00"), "Cash"),
-                    AccountingService.Line.cr("4000", new BigDecimal("105.00"), "Sales"),
-                    AccountingService.Line.dr("5000", new BigDecimal("82.00"), "COGS"),
-                    AccountingService.Line.cr("1400", new BigDecimal("82.00"), "Inventory")
+            accounting.post("POS sales settlement — morning", "POS_SALE", 0L, List.of(
+                    AccountingService.Line.dr("1000", new BigDecimal("4820.50"), "Cash & electronic collections"),
+                    AccountingService.Line.cr("4000", new BigDecimal("4820.50"), "Sales"),
+                    AccountingService.Line.dr("5000", new BigDecimal("3120.00"), "COGS"),
+                    AccountingService.Line.cr("1400", new BigDecimal("3120.00"), "Inventory")
             ));
 
-            audit.record(admin.getId(), "SEED", "System", "0", null, "Demo environment seeded", harare.getId(), "Initial load");
-            audit.record(gm.getId(), "PRICE_CHANGE", "Product", "CEM-PPC-50", "10.00", "10.50", harare.getId(), "Quarterly price review");
+            audit.record(admin.getId(), "SEED", "System", "0", null, "SNG ONE environment loaded", damofalls.getId(), "Initial load");
+            audit.record(gm.getId(), "PRICE_CHANGE", "Product", "CEM-PPC-50", "10.00", "10.50", damofalls.getId(), "Quarterly price review");
             audit.record(wm.getId(), "DAMAGE", "Product", "CEM-PPC-50", "504", "492", wh1.getId(), "Damaged bags");
         };
     }

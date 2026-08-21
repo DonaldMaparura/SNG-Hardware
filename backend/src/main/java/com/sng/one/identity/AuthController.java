@@ -37,21 +37,21 @@ public class AuthController {
     @PostMapping("/demo")
     public Map<String, Object> demo(@RequestBody Map<String, String> body) {
         if (!demoOneClick) {
-            throw new BusinessException("Demo login is not enabled", 404);
+            throw new BusinessException("Role shortcut is not enabled", 404);
         }
         String role = body.getOrDefault("role", "").toUpperCase();
         String email = switch (role) {
             case "GENERAL_MANAGER", "GM" -> "gm@sng.one";
             case "OPERATIONS_MANAGER" -> "ops@sng.one";
             case "DIRECTOR" -> "director@sng.one";
-            case "BRANCH_MANAGER" -> "harare.manager@sng.one";
+            case "BRANCH_MANAGER" -> "damofalls.manager@sng.one";
             case "WAREHOUSE_MANAGER" -> "warehouse.manager@sng.one";
             case "STORE_OPERATOR", "CASHIER" -> "cashier@sng.one";
             case "DRIVER" -> "driver@sng.one";
             case "FINANCE", "FINANCE_CONTROLLER" -> "finance@sng.one";
             case "AUDITOR" -> "auditor@sng.one";
             case "CUSTOMER", "TRADE" -> "abc@construction.zw";
-            default -> throw new BusinessException("Unknown demo role");
+            default -> throw new BusinessException("Unknown role shortcut");
         };
         return login(new LoginRequest(email, demoPassword));
     }

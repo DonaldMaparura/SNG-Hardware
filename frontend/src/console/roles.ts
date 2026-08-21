@@ -131,10 +131,7 @@ export function moreLinks(role: string): NavItem[] {
   if (isStoreOperator(role) || role === "BRANCH_MANAGER") {
     return [
       { to: "/app/customers", label: "Customers" },
-      { to: "/app/orders", label: "Quotes & orders" },
-      { to: "/app/timber", label: "Timber cutting" },
-      { to: "/app/fleet", label: "Fleet" },
-      { to: "/app/warehouse", label: "Warehouse" },
+      { to: "/app/timber", label: "Timber requests" },
     ];
   }
   if (isDirector(role)) {
